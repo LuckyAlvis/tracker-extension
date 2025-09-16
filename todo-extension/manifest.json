@@ -1,0 +1,33 @@
+{
+  "manifest_version": 3,
+  "name": "滴答清单 - 最小MVP",
+  "version": "0.4.0",
+  "description": "一个极简的待办清单（本地存储，MV3）。支持侧边栏显示。",
+  "action": {
+    "default_title": "滴答清单"
+  },
+  "background": {
+    "service_worker": "background.js"
+  },
+  "permissions": [
+    "storage",
+    "sidePanel"
+  ],
+  "host_permissions": ["<all_urls>"],
+  "content_scripts": [
+    {
+      "matches": ["<all_urls>"],
+      "js": ["inject.js"],
+      "run_at": "document_end"
+    }
+  ],
+  "side_panel": {
+    "default_path": "panel.html"
+  },
+  "web_accessible_resources": [
+    {
+      "resources": ["panel.html", "popup.css", "popup.js"],
+      "matches": ["<all_urls>"]
+    }
+  ]
+}

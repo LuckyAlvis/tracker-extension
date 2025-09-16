@@ -1,0 +1,69 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>滴答清单 - 侧边栏</title>
+    <link rel="stylesheet" href="popup.css" />
+    <style>
+      /* 浅色主题覆盖，匹配右侧白色抽屉 */
+      :root {
+        --bg: #ffffff;
+        --panel: #ffffff;
+        --muted: #6b7280;   /* gray-500 */
+        --text: #111827;    /* gray-900 */
+        --primary: #3b82f6; /* blue-500 */
+        --border: rgba(0,0,0,0.08);
+        --accent: #f3f4f6;  /* gray-100 */
+        --danger: #ef4444;  /* red-500 */
+      }
+      /* 侧边栏中稍微收紧内边距 */
+      body { width: auto; min-height: 100vh; background: var(--bg); color: var(--text); }
+      .container { padding: 10px; }
+      .header { display:none; }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <section class="add">
+        <input id="todo-input" type="text" placeholder="添加新的待办事项…" maxlength="120" />
+        <button id="add-btn" title="添加">+</button>
+      </section>
+
+      <section class="today">
+        <h2>今天</h2>
+      </section>
+
+      <section class="lists">
+        <div class="list-block">
+          <div class="list-title">未完成 <span id="count-active" class="count">0</span></div>
+          <ul id="list-active" class="list"></ul>
+        </div>
+        <div class="list-block">
+          <div class="list-title">已完成 <span id="count-done" class="count">0</span></div>
+          <ul id="list-done" class="list"></ul>
+        </div>
+      </section>
+
+      <footer class="footer">
+        <span id="stats"></span>
+      </footer>
+    </div>
+
+    <template id="item-template">
+      <li class="item">
+        <label class="checkbox">
+          <input type="checkbox" class="toggle" />
+          <span class="checkmark" aria-hidden="true"></span>
+        </label>
+        <div class="content">
+          <div class="text"></div>
+          <div class="meta"></div>
+        </div>
+        <button class="delete" title="删除">🗑️</button>
+      </li>
+    </template>
+
+    <script src="popup.js"></script>
+  </body>
+</html>
