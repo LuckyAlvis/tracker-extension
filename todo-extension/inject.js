@@ -43,10 +43,11 @@
     }
     .drawer.open { transform: translateX(0); }
     .closeBtn {
-      position: absolute; top: 8px; right: 8px; width: 28px; height: 28px;
-      border-radius: 6px; border: 1px solid rgba(0,0,0,.08); background: #fff;
-      box-shadow: 0 2px 8px rgba(0,0,0,.08); cursor: pointer; color: #374151;
-      display: flex; align-items: center; justify-content: center; font-size: 16px;
+      position: absolute; top: 12px; right: 12px; width: 32px; height: 32px;
+      border-radius: 8px; border: 1px solid rgba(0,0,0,.12); background: #fff;
+      box-shadow: 0 2px 12px rgba(0,0,0,.15); cursor: pointer; color: #374151;
+      display: flex; align-items: center; justify-content: center; font-size: 18px;
+      z-index: 10;
     }
     .closeBtn:hover { filter: brightness(0.98); }
     .handle {
@@ -96,8 +97,8 @@
   // 把手（始终显示在右侧边缘）
   const handle = document.createElement('div');
   handle.className = 'handle';
-  handle.textContent = '滴答清单';
-  handle.title = '展开/收起';
+  handle.textContent = '📝';
+  handle.title = '展开/收起待办清单';
   handle.addEventListener('click', () => toggle());
 
   shadow.appendChild(style);
@@ -139,7 +140,9 @@
   chrome.storage.onChanged.addListener((changes, area) => {
     if (area !== 'local') return;
     if (Object.prototype.hasOwnProperty.call(changes, 'drawerOpen')) {
-      apply(Boolean(changes.drawerOpen.newValue));
+      const newState = Boolean(changes.drawerOpen.newValue);
+      console.log('inject.js: drawerOpen changed to', newState);
+      apply(newState);
     }
   });
 

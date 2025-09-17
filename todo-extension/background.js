@@ -1,21 +1,34 @@
-// Enable the side panel by default when the extension is installed
+// Initialize default states when the extension is installed
 chrome.runtime.onInstalled.addListener(() => {
-  // Set default state
   chrome.storage.local.set({
     tasks: [],
-    sidePanelOpen: true
-  });
-  
-  // Enable the side panel by default
-  chrome.sidePanel.setOptions({
-    enabled: true
+    drawerOpen: false
   });
 });
 
-// Open side panel when the extension icon is clicked
+// Toggle injected drawer when the extension icon is clicked
 chrome.action.onClicked.addListener(async (tab) => {
-  // Open the side panel for this tab
-  await chrome.sidePanel.open({ tabId: tab.id });
+  try {
+    // Proactively inject content script for existing tabs (idempotent: inject.js guards against duplicate)
+    if (tab && tab.id && tab.url && /^(https?:|file:)/.test(tab.url)) {
+      await chrome.scripting.executeScript({
+        target: { tabId: tab.id },
+        files: ['inject.js']
+      });
+      // Flip global drawer state; inject.js listens to this to open/close
+      const { drawerOpen } = await chrome.storage.local.get('drawerOpen');
+      const newState = !Boolean(drawerOpen);
+      await chrome.storage.local.set({ drawerOpen: newState });
+      console.log('Drawer state changed:', drawerOpen, '->', newState);
+      return;
+    }
+  } catch (err) {
+    // Ignore injection errors on restricted pages (chrome://, edge://, etc.)
+    console.warn('Injection skipped:', err?.message || err);
+  }
+
+  // For non-injectable pages, just log the attempt
+  console.log('Cannot inject on this page:', tab?.url);
 });
 
 // Listen for messages from the side panel

@@ -1,0 +1,30 @@
+{
+  "manifest_version": 3,
+  "name": "Web Viewer Extension",
+  "version": "1.0.0",
+  "description": "在侧边栏中打开指定网址的浏览器插件",
+  
+  "permissions": [
+    "storage",
+    "sidePanel",
+    "tabs"
+  ],
+  
+  "host_permissions": [
+    "*://*/*"
+  ],
+  
+  "background": {
+    "service_worker": "scripts/background.js",
+    "type": "module"
+  },
+  
+  "side_panel": {
+    "default_path": "sidepanel.html"
+  },
+  
+  "action": {
+    "default_title": "Web Viewer",
+    "default_popup": "popup.html"
+  }
+}

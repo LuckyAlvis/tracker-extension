@@ -11,7 +11,7 @@
   },
   "permissions": [
     "storage",
-    "sidePanel"
+    "scripting"
   ],
   "host_permissions": ["<all_urls>"],
   "content_scripts": [
@@ -21,9 +21,6 @@
       "run_at": "document_end"
     }
   ],
-  "side_panel": {
-    "default_path": "panel.html"
-  },
   "web_accessible_resources": [
     {
       "resources": ["panel.html", "popup.css", "popup.js"],
