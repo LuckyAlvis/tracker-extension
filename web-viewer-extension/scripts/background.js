@@ -39,3 +39,19 @@ chrome.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
 
 // 处理侧边栏相关的逻辑
 chrome.sidePanel.setPanelBehavior({ openPanelOnActionClick: true });
+
+// 处理快捷键命令
+chrome.commands.onCommand.addListener(async (command) => {
+    if (command === 'toggle-side-panel') {
+        // 获取当前活动标签页
+        const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+        if (tab) {
+            // 切换侧边栏状态
+            try {
+                await chrome.sidePanel.open({ windowId: tab.windowId });
+            } catch (error) {
+                console.log('侧边栏已打开或发生错误:', error);
+            }
+        }
+    }
+});

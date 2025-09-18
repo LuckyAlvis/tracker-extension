@@ -42,9 +42,13 @@ body {
     padding: 8px 12px;
     border: none;
     border-radius: 6px;
-    font-size: 14px;
+    font-size: 12px;
     outline: none;
     background: rgba(255,255,255,0.9);
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
 }
 
 #urlInput:focus {
@@ -90,6 +94,18 @@ button {
 
 #openNewTabBtn:hover {
     background: #F57C00;
+    transform: translateY(-1px);
+}
+
+#selectFileBtn {
+    background: #9C27B0;
+    color: white;
+    padding: 8px 12px;
+    min-width: 40px;
+}
+
+#selectFileBtn:hover {
+    background: #7B1FA2;
     transform: translateY(-1px);
 }
 
@@ -275,6 +291,133 @@ button {
     background: #e9ecef;
 }
 
+/* PDF查看器样式 */
+.pdf-container {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: white;
+    display: none;
+    z-index: 15;
+}
+
+.pdf-viewer-container {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+}
+
+.pdf-header {
+    background: #f8f9fa;
+    padding: 10px 15px;
+    border-bottom: 1px solid #dee2e6;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.pdf-header h4 {
+    margin: 0;
+    color: #333;
+    font-size: 14px;
+    font-weight: 600;
+}
+
+.pdf-new-tab-btn {
+    background: #007bff;
+    color: white;
+    border: none;
+    padding: 6px 12px;
+    border-radius: 4px;
+    font-size: 12px;
+    cursor: pointer;
+}
+
+.pdf-new-tab-btn:hover {
+    background: #0056b3;
+}
+
+.pdf-alternative {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    height: 100%;
+    text-align: center;
+    padding: 40px 20px;
+}
+
+.pdf-icon {
+    font-size: 64px;
+    margin-bottom: 20px;
+}
+
+.pdf-alternative h3 {
+    color: #333;
+    margin-bottom: 15px;
+    font-size: 18px;
+}
+
+.pdf-alternative p {
+    color: #666;
+    margin-bottom: 25px;
+    line-height: 1.5;
+}
+
+.pdf-actions {
+    display: flex;
+    gap: 15px;
+    margin-bottom: 25px;
+    flex-wrap: wrap;
+    justify-content: center;
+}
+
+.pdf-btn {
+    padding: 10px 20px;
+    border: none;
+    border-radius: 6px;
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.pdf-btn.primary {
+    background: #007bff;
+    color: white;
+}
+
+.pdf-btn.primary:hover {
+    background: #0056b3;
+}
+
+.pdf-btn.secondary {
+    background: #6c757d;
+    color: white;
+}
+
+.pdf-btn.secondary:hover {
+    background: #545b62;
+}
+
+.pdf-info {
+    background: #f8f9fa;
+    border-radius: 8px;
+    padding: 15px;
+    text-align: left;
+    max-width: 300px;
+    border: 1px solid #e9ecef;
+}
+
+.pdf-info p {
+    margin: 5px 0;
+    color: #666;
+    font-size: 14px;
+}
+
 /* 响应式设计 */
 @media (max-width: 400px) {
     .url-input-container {
@@ -287,5 +430,14 @@ button {
     
     .header {
         padding: 12px;
+    }
+    
+    .pdf-actions {
+        flex-direction: column;
+        align-items: center;
+    }
+    
+    .pdf-btn {
+        width: 200px;
     }
 }

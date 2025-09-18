@@ -15,10 +15,16 @@
                     type="url" 
                     id="urlInput" 
                     placeholder="请输入网址，例如：https://weread.qq.com/web/reader/..."
-                    value="https://weread.qq.com/web/reader/cda321b0813ab8f57g017ac9k16732dc0161679091c5aeb1"
+                    value=""
                 />
-                <button id="loadBtn">加载</button>
-                <button id="refreshBtn">刷新</button>
+                <input 
+                    type="file" 
+                    id="fileInput" 
+                    accept=".pdf,.html,.htm,.txt"
+                    style="display: none;"
+                />
+                <button id="selectFileBtn" title="选择本地文件">📁</button>
+                <button id="saveProgressBtn" title="保存当前阅读进度">💾</button>
                 <button id="openNewTabBtn">新标签页打开</button>
             </div>
         </div>
@@ -41,14 +47,17 @@
             <div class="welcome-message" id="welcomeMessage">
                 <div class="welcome-icon">🌐</div>
                 <h3>欢迎使用网页浏览器</h3>
-                <p>在上方输入框中输入网址，然后点击"加载"按钮开始浏览。</p>
+                <p>支持加载网页和本地文件（PDF、HTML等）。</p>
                 <div class="welcome-tips">
                     <p><strong>功能说明：</strong></p>
                     <ul>
-                        <li><strong>加载</strong> - 在侧边栏中加载网页</li>
-                        <li><strong>刷新</strong> - 重新加载当前网页</li>
-                        <li><strong>新标签页打开</strong> - 在新标签页中打开网页</li>
+                        <li><strong>📁 选择文件</strong> - 选择本地PDF或HTML文件</li>
+                        <li><strong>输入网址</strong> - 输入后按回车键加载</li>
+                        <li><strong>💾 保存进度</strong> - 自动保存当前阅读页码</li>
+                        <li><strong>新标签页打开</strong> - 在新标签页中打开</li>
+                        <li><strong>快捷键</strong> - Ctrl+Shift+S 打开/关闭插件</li>
                     </ul>
+                    <p><strong>支持格式：</strong>网址 (http/https)、本地PDF文件、HTML文件等</p>
                     <p><strong>注意：</strong>某些网站可能不允许在iframe中显示，此时请使用"新标签页打开"。</p>
                 </div>
             </div>
