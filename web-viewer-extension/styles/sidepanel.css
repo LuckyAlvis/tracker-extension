@@ -12,6 +12,70 @@ body {
     overflow: hidden;
     margin: 0;
     padding: 0;
+    width: 100%;
+    transition: width 0.3s ease;
+}
+
+/* 收起状态 - 使用更强的选择器 */
+body.collapsed .container {
+    position: relative !important;
+    background: #f0f0f0 !important;
+}
+
+body.collapsed .header {
+    padding: 10px !important;
+    text-align: center !important;
+    min-height: auto !important;
+}
+
+body.collapsed .header-top {
+    margin-bottom: 0 !important;
+    justify-content: center !important;
+}
+
+body.collapsed .header-top h2 {
+    display: none !important;
+}
+
+body.collapsed .url-input-container {
+    display: none !important;
+}
+
+body.collapsed .iframe-container {
+    position: relative !important;
+    background: #f8f9fa !important;
+}
+
+body.collapsed .iframe-container::before {
+    content: "📄\A侧边栏已收起\A\A文件在后台运行中\A\A点击 ▶ 展开查看";
+    white-space: pre-line;
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    color: #666;
+    font-size: 14px;
+    text-align: center;
+    z-index: 1000;
+    pointer-events: none;
+    line-height: 1.6;
+}
+
+body.collapsed .iframe-container > * {
+    display: none !important;
+}
+
+body.collapsed .collapse-btn {
+    margin: 0 auto !important;
+    display: flex !important;
+    width: 45px !important;
+    height: 45px !important;
+    border-radius: 50% !important;
+    align-items: center !important;
+    justify-content: center !important;
+    font-size: 18px !important;
+    background: rgba(255,255,255,0.3) !important;
+    border: 2px solid rgba(255,255,255,0.5) !important;
 }
 
 .container {
@@ -25,12 +89,37 @@ body {
     color: white;
     padding: 15px;
     box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+    transition: all 0.3s ease;
+}
+
+.header-top {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 15px;
 }
 
 .header h2 {
-    margin-bottom: 15px;
+    margin: 0;
     font-size: 18px;
     font-weight: 600;
+}
+
+.collapse-btn {
+    background: rgba(255,255,255,0.2);
+    color: white;
+    border: none;
+    border-radius: 4px;
+    padding: 8px 12px;
+    font-size: 16px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    min-width: 40px;
+}
+
+.collapse-btn:hover {
+    background: rgba(255,255,255,0.3);
+    transform: scale(1.1);
 }
 
 .url-input-container {

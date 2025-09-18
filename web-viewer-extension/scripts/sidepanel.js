@@ -6,6 +6,7 @@ document.addEventListener('DOMContentLoaded', function() {
     const selectFileBtn = document.getElementById('selectFileBtn');
     const saveProgressBtn = document.getElementById('saveProgressBtn');
     const openNewTabBtn = document.getElementById('openNewTabBtn');
+    const collapseBtn = document.getElementById('collapseBtn');
     const webFrame = document.getElementById('webFrame');
     const loading = document.getElementById('loading');
     const errorMessage = document.getElementById('errorMessage');
@@ -27,6 +28,7 @@ document.addEventListener('DOMContentLoaded', function() {
     backToInput.addEventListener('click', backToInputMode);
     selectFileBtn.addEventListener('click', selectFile);
     saveProgressBtn.addEventListener('click', saveCurrentProgress);
+    collapseBtn.addEventListener('click', toggleCollapse);
     fileInput.addEventListener('change', handleFileSelect);
     urlInput.addEventListener('keypress', function(e) {
         if (e.key === 'Enter') {
@@ -66,6 +68,9 @@ document.addEventListener('DOMContentLoaded', function() {
     // 当前页码跟踪
     let currentPage = 1;
     let currentFileName = '';
+    
+    // 收起状态跟踪
+    let isCollapsed = false;
 
     // 初始化界面
     function initializeInterface() {
@@ -77,6 +82,8 @@ document.addEventListener('DOMContentLoaded', function() {
         // 显示欢迎界面
         welcomeMessage.style.display = 'flex';
         console.log('欢迎界面应该已显示');
+        // 加载收起状态
+        loadCollapseState();
         // 加载保存的状态
         loadSavedState();
     }
@@ -520,6 +527,49 @@ document.addEventListener('DOMContentLoaded', function() {
         alert(message); // 临时使用alert显示错误信息
     }
     
+    // 切换收起状态
+    function toggleCollapse() {
+        isCollapsed = !isCollapsed;
+        console.log('切换收起状态:', isCollapsed);
+        
+        if (isCollapsed) {
+            // 收起状态
+            document.body.classList.add('collapsed');
+            collapseBtn.innerHTML = '▶';
+            collapseBtn.title = '展开侧边栏';
+            console.log('侧边栏已收起，CSS类已添加');
+            console.log('当前body类名:', document.body.className);
+        } else {
+            // 展开状态
+            document.body.classList.remove('collapsed');
+            collapseBtn.innerHTML = '◀';
+            collapseBtn.title = '收起侧边栏';
+            console.log('侧边栏已展开，CSS类已移除');
+            console.log('当前body类名:', document.body.className);
+        }
+        
+        // 保存收起状态到本地存储
+        chrome.storage.local.set({ 'isCollapsed': isCollapsed }, function() {
+            console.log('收起状态已保存:', isCollapsed);
+        });
+    }
+    
+    // 加载收起状态
+    function loadCollapseState() {
+        chrome.storage.local.get(['isCollapsed'], function(result) {
+            console.log('加载收起状态:', result.isCollapsed);
+            if (result.isCollapsed) {
+                isCollapsed = true;
+                document.body.classList.add('collapsed');
+                collapseBtn.innerHTML = '▶';
+                collapseBtn.title = '展开侧边栏';
+                console.log('恢复收起状态，CSS类已添加');
+            } else {
+                console.log('默认展开状态');
+            }
+        });
+    }
+    
     // 测试函数：查看当前存储的进度数据
     function debugProgress() {
         chrome.storage.local.get(['fileProgress'], function(result) {
@@ -547,8 +597,17 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
     
+    // 调试收起功能
+    function debugCollapse() {
+        console.log('当前收起状态:', isCollapsed);
+        console.log('body是否有collapsed类:', document.body.classList.contains('collapsed'));
+        console.log('按钮文本:', collapseBtn.innerHTML);
+        console.log('按钮标题:', collapseBtn.title);
+    }
+    
     // 将调试函数暴露到全局，方便在控制台调用
     window.debugProgress = debugProgress;
+    window.debugCollapse = debugCollapse;
     window.cleanupStorage = cleanupStorage;
     
     // 启动时自动清理存储
