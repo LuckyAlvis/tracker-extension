@@ -83,12 +83,12 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // 加载保存的状态（URL或文件）
     function loadSavedState() {
-        chrome.storage.local.get(['currentUrl', 'currentFile', 'fileType', 'fileData'], function(result) {
+        chrome.storage.local.get(['currentUrl', 'currentFile', 'fileType'], function(result) {
             console.log('加载保存的状态:', result);
             
-            if (result.currentFile && result.fileType && result.fileData) {
-                // 恢复文件状态
-                console.log('恢复文件状态:', result.currentFile);
+            if (result.currentFile && result.fileType) {
+                // 恢复文件状态（但不能自动加载文件，因为没有保存文件数据）
+                console.log('发现上次使用的文件:', result.currentFile);
                 urlInput.value = result.currentFile;
                 currentFileName = result.currentFile;
                 
@@ -96,30 +96,13 @@ document.addEventListener('DOMContentLoaded', function() {
                 loadFileProgress(result.currentFile, function(savedPage) {
                     if (savedPage) {
                         currentPage = parseInt(savedPage);
-                        console.log('恢复文件进度:', savedPage);
-                    }
-                    
-                    // 重新创建文件对象并加载
-                    try {
-                        const byteCharacters = atob(result.fileData);
-                        const byteNumbers = new Array(byteCharacters.length);
-                        for (let i = 0; i < byteCharacters.length; i++) {
-                            byteNumbers[i] = byteCharacters.charCodeAt(i);
-                        }
-                        const byteArray = new Uint8Array(byteNumbers);
-                        const file = new File([byteArray], result.currentFile, { type: result.fileType });
-                        
-                        if (result.fileType === 'application/pdf' || result.currentFile.toLowerCase().endsWith('.pdf')) {
-                            loadPDFFile(file);
-                        } else {
-                            const fileUrl = URL.createObjectURL(file);
-                            loadUrlToFrame(fileUrl);
-                        }
-                    } catch (error) {
-                        console.log('恢复文件失败:', error);
-                        showWelcomeMessage();
+                        console.log('该文件有保存的进度:', savedPage);
                     }
                 });
+                
+                // 显示提示信息，让用户重新选择文件
+                showWelcomeMessage();
+                console.log('请重新选择文件以继续阅读');
             } else if (result.currentUrl) {
                 // 恢复URL状态
                 urlInput.value = result.currentUrl;
@@ -352,28 +335,20 @@ document.addEventListener('DOMContentLoaded', function() {
                     console.log('没有保存的进度，使用默认页码1');
                 }
                 
-                // 读取文件数据并保存
-                const reader = new FileReader();
-                reader.onload = function(e) {
-                    const arrayBuffer = e.target.result;
-                    const bytes = new Uint8Array(arrayBuffer);
-                    let binary = '';
-                    for (let i = 0; i < bytes.byteLength; i++) {
-                        binary += String.fromCharCode(bytes[i]);
+                // 不再保存完整文件数据，只保存文件信息
+                // 保存文件信息到本地存储（不包含文件数据）
+                chrome.storage.local.set({ 
+                    'currentFile': file.name,
+                    'fileType': file.type,
+                    'fileData': '', // 清空文件数据，避免存储配额问题
+                    'currentUrl': '' // 清空URL
+                }, function() {
+                    if (chrome.runtime.lastError) {
+                        console.error('保存文件信息失败:', chrome.runtime.lastError);
+                    } else {
+                        console.log('文件信息已保存到本地存储');
                     }
-                    const base64Data = btoa(binary);
-                    
-                    // 保存文件信息和数据到本地存储
-                    chrome.storage.local.set({ 
-                        'currentFile': file.name,
-                        'fileType': file.type,
-                        'fileData': base64Data,
-                        'currentUrl': '' // 清空URL
-                    }, function() {
-                        console.log('文件数据已保存到本地存储');
-                    });
-                };
-                reader.readAsArrayBuffer(file);
+                });
                 
                 // 检查文件类型并加载
                 if (file.type === 'application/pdf' || file.name.toLowerCase().endsWith('.pdf')) {
@@ -433,7 +408,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     type="application/pdf" 
                     width="100%" 
                     height="100%"
-                    style="border: none; background: white;"
+                    style="border: none; margin: 0; padding: 0; display: block; background: white;"
                 />
             </div>
         `;
@@ -554,8 +529,30 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
     
+    // 清理存储中的大文件数据
+    function cleanupStorage() {
+        chrome.storage.local.get(null, function(items) {
+            const updates = {};
+            for (let key in items) {
+                if (key === 'fileData' || (typeof items[key] === 'string' && items[key].length > 10000)) {
+                    updates[key] = '';
+                    console.log('清理大数据项:', key, '大小:', items[key].length);
+                }
+            }
+            if (Object.keys(updates).length > 0) {
+                chrome.storage.local.set(updates, function() {
+                    console.log('存储清理完成');
+                });
+            }
+        });
+    }
+    
     // 将调试函数暴露到全局，方便在控制台调用
     window.debugProgress = debugProgress;
+    window.cleanupStorage = cleanupStorage;
+    
+    // 启动时自动清理存储
+    cleanupStorage();
 
     // 监听来自popup的消息
     chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
