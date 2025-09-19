@@ -126,26 +126,20 @@
     <div class="main-content">
       <!-- 模式切换 -->
       <div class="mode-switcher">
-        <button
-          :class="currentMode === 'work' ? 'active work-mode' : ''"
-          @click="setMode('work')"
-          class="mode-btn"
-        >
-          💼 工作
+        <button 
+          @click="() => { playClickSound(); setMode('work'); }" 
+          :class="['mode-btn', { active: currentMode === 'work' }]">
+          🍅 工作
         </button>
-        <button
-          :class="currentMode === 'shortBreak' ? 'active short-break-mode' : ''"
-          @click="setMode('shortBreak')"
-          class="mode-btn"
-        >
+        <button 
+          @click="() => { playClickSound(); setMode('shortBreak'); }" 
+          :class="['mode-btn', { active: currentMode === 'shortBreak' }]">
           ☕ 短休息
         </button>
-        <button
-          :class="currentMode === 'longBreak' ? 'active long-break-mode' : ''"
-          @click="setMode('longBreak')"
-          class="mode-btn"
-        >
-          🛏️ 长休息
+        <button 
+          @click="() => { playClickSound(); setMode('longBreak'); }" 
+          :class="['mode-btn', { active: currentMode === 'longBreak' }]">
+          🌴 长休息
         </button>
       </div>
 
@@ -203,7 +197,7 @@
         <div class="timer-controls">
           <button 
             class="control-btn primary"
-            @click="toggleTimer"
+            @click="() => { playClickSound(); toggleTimer(); }"
             :class="{ 'danger': isRunning }"
           >
             <span class="btn-icon">{{ isRunning ? '⏸️' : '▶️' }}</span>
@@ -212,7 +206,7 @@
           
           <button 
             class="control-btn secondary"
-            @click="resetTimer"
+            @click="() => { playClickSound(); resetTimer(); }"
           >
             <span class="btn-icon">🔄</span>
             重置
@@ -256,7 +250,7 @@
             />
             <button 
               class="add-task-btn"
-              @click="addTask"
+              @click="() => { playClickSound(); addTask(); }"
               :disabled="!newTaskText.trim()"
             >
               ➕
@@ -278,7 +272,12 @@
             <div class="task-content">
               <button 
                 class="task-checkbox"
-                @click="toggleTask(task.id)"
+                @click="(event) => { 
+                  const task = tasks.find(t => t.id === task.id);
+                  if (!task.completed) playTaskCompleteSound();
+                  else playClickSound();
+                  toggleTask(task.id);
+                }"
                 :class="{ 'completed': task.completed }"
               >
                 <span v-if="task.completed" class="checkmark">✓</span>
@@ -350,6 +349,7 @@
 <script>
 import { ref, reactive, computed, onMounted, onUnmounted, watch } from 'vue'
 import { useAppStore } from '@store/app'
+import audioManager from '@utils/audioManager'
 
 export default {
   name: 'Pomodoro',
@@ -503,6 +503,11 @@ export default {
       timerInterval = setInterval(() => {
         if (timeLeft.value > 0) {
           timeLeft.value--
+          
+          // 最后10秒警告音效
+          if (timeLeft.value <= 10 && timeLeft.value > 0 && settings.soundEnabled) {
+            playNotificationSound('warning')
+          }
         } else {
           completeCurrentCycle()
         }
@@ -535,7 +540,11 @@ export default {
       
       // 播放提示音
       if (settings.soundEnabled) {
-        playNotificationSound()
+        if (currentMode.value === 'work') {
+          playNotificationSound('workComplete')
+        } else {
+          playNotificationSound('breakComplete')
+        }
       }
       
       // 处理完成后的逻辑
@@ -586,27 +595,30 @@ export default {
       }
     }
     
-    // 播放提示音（使用Web Audio API创建简单提示音）
-    const playNotificationSound = () => {
+    // 播放通知音效
+    const playNotificationSound = (type = 'workComplete') => {
       try {
-        const audioContext = new (window.AudioContext || window.webkitAudioContext)()
-        const oscillator = audioContext.createOscillator()
-        const gainNode = audioContext.createGain()
-        
-        oscillator.connect(gainNode)
-        gainNode.connect(audioContext.destination)
-        
-        oscillator.type = 'sine'
-        oscillator.frequency.setValueAtTime(1000, audioContext.currentTime) // 频率
-        gainNode.gain.setValueAtTime(0.1, audioContext.currentTime) // 音量
-        
-        oscillator.start()
-        oscillator.stop(audioContext.currentTime + 0.5) // 持续0.5秒
-      } catch (e) {
-        console.log('提示音播放失败:', e)
+        if (type === 'workComplete') {
+          audioManager.playWorkComplete()
+        } else if (type === 'breakComplete') {
+          audioManager.playBreakComplete()
+        } else if (type === 'warning') {
+          audioManager.playWarning()
+        }
+      } catch (error) {
+        console.warn('音效播放失败:', error)
       }
     }
     
+    // 播放按钮点击音效
+    const playClickSound = () => {
+      audioManager.playClick()
+    }
+    
+    // 播放任务完成音效
+    const playTaskCompleteSound = () => {
+      audioManager.playTaskComplete()
+    }
     
     // 更新工作统计
     const updateWorkStats = () => {
@@ -757,6 +769,57 @@ export default {
       })
     }
     
+    // 保存当前状态
+    const saveCurrentState = () => {
+      chrome.storage.local.set({
+        'pomodoro-current-state': {
+          isRunning: isRunning.value,
+          timeLeft: timeLeft.value,
+          currentMode: currentMode.value,
+          currentCycle: currentCycle.value,
+          completedPomodoros: completedPomodoros.value,
+          lastSaved: Date.now()
+        }
+      })
+    }
+    
+    // 加载当前状态
+    const loadCurrentState = async () => {
+      try {
+        const result = await chrome.storage.local.get(['pomodoro-current-state'])
+        if (result['pomodoro-current-state']) {
+          const state = result['pomodoro-current-state']
+          const timeSinceLastSave = Date.now() - state.lastSaved
+          
+          // 如果保存时间超过5分钟，不恢复运行状态
+          if (timeSinceLastSave > 5 * 60 * 1000) {
+            state.isRunning = false
+          }
+          
+          // 恢复状态
+          currentMode.value = state.currentMode || 'work'
+          currentCycle.value = state.currentCycle || 1
+          completedPomodoros.value = state.completedPomodoros || 0
+          
+          // 如果之前在运行且时间没有过期，继续计时
+          if (state.isRunning && timeSinceLastSave < 5 * 60 * 1000) {
+            const elapsedSeconds = Math.floor(timeSinceLastSave / 1000)
+            timeLeft.value = Math.max(0, state.timeLeft - elapsedSeconds)
+            
+            if (timeLeft.value > 0) {
+              startTimer()
+            } else {
+              completeCurrentCycle()
+            }
+          } else {
+            timeLeft.value = state.timeLeft || getCurrentModeDuration() * 60
+          }
+        }
+      } catch (error) {
+        console.error('加载当前状态失败:', error)
+      }
+    }
+    
     // 加载设置
     const loadSettings = async () => {
       try {
@@ -777,6 +840,11 @@ export default {
         timeLeft.value = getCurrentModeDuration() * 60
       }
     }, { deep: true })
+    
+    // 监听状态变化，自动保存
+    watch([isRunning, timeLeft, currentMode, currentCycle, completedPomodoros], () => {
+      saveCurrentState()
+    })
     
     // 监听工作/休息时长变化时，更新当前计时器（如果处于对应模式且未运行）
     watch(() => settings.workDuration, (newVal) => {
@@ -802,7 +870,12 @@ export default {
       await loadSettings()
       await loadTasks()
       await loadStats()
-      timeLeft.value = getCurrentModeDuration() * 60
+      await loadCurrentState()
+      
+      // 如果没有加载到状态，使用默认值
+      if (!timeLeft.value) {
+        timeLeft.value = getCurrentModeDuration() * 60
+      }
     })
     
     // 组件卸载
@@ -847,12 +920,18 @@ export default {
       getCurrentModeDuration,
       formatTime,
       toggleTimer,
+      startTimer,
       resetTimer,
       addTask,
       toggleTask,
       setActiveTask,
       removeTask,
-      handleCompletionAlert
+      handleCompletionAlert,
+      
+      // 音效方法
+      playNotificationSound,
+      playClickSound,
+      playTaskCompleteSound
     }
   }
 }
@@ -1068,11 +1147,29 @@ export default {
   fill: none;
   stroke-width: 6;
   stroke-linecap: round;
-  transition: all 1s ease-in-out;
+  transition: all 0.8s cubic-bezier(0.4, 0, 0.2, 1);
+  filter: drop-shadow(0 0 8px rgba(59, 130, 246, 0.3));
 }
 
 .timer-circle.running .progress-ring-progress {
   animation: progress-pulse 2s ease-in-out infinite;
+}
+
+.timer-circle.work-mode .progress-ring-progress {
+  filter: drop-shadow(0 0 12px rgba(59, 130, 246, 0.4));
+}
+
+.timer-circle.short-break-mode .progress-ring-progress {
+  filter: drop-shadow(0 0 12px rgba(16, 185, 129, 0.4));
+}
+
+.timer-circle.long-break-mode .progress-ring-progress {
+  filter: drop-shadow(0 0 12px rgba(245, 158, 11, 0.4));
+}
+
+.timer-circle.warning .progress-ring-progress {
+  filter: drop-shadow(0 0 16px rgba(239, 68, 68, 0.6));
+  animation: warning-glow 0.5s ease-in-out infinite alternate;
 }
 
 /* 计时器内容 */
@@ -1466,9 +1563,22 @@ export default {
 @keyframes progress-pulse {
   0%, 100% { 
     opacity: 1;
+    stroke-width: 6;
   }
   50% { 
+    opacity: 0.9;
+    stroke-width: 7;
+  }
+}
+
+@keyframes warning-glow {
+  0% {
+    stroke-width: 6;
     opacity: 0.8;
+  }
+  100% {
+    stroke-width: 8;
+    opacity: 1;
   }
 }
 

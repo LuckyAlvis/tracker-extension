@@ -1,0 +1,563 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>专注番茄钟 - 提升工作效率的时间管理工具</title>
+    <!-- 引入外部资源 -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdn.jsdelivr.net/npm/font-awesome@4.7.0/css/font-awesome.min.css" rel="stylesheet">
+    <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+
+    <!-- Tailwind CSS 配置 -->
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: '#3B82F6', // 主色调：蓝色，代表专注和平静
+                        secondary: '#10B981', // 辅助色：绿色，代表完成和进步
+                        accent: '#F59E0B', // 强调色：橙色，代表活力
+                        danger: '#EF4444', // 危险色：红色，代表警告
+                        dark: '#1E293B',  // 深色
+                        light: '#F8FAFC'  // 浅色
+                    },
+                    fontFamily: {
+                        inter: ['Inter', 'system-ui', 'sans-serif'],
+                    },
+                },
+            }
+        }
+    </script>
+
+    <!-- 自定义工具类 -->
+    <style type="text/tailwindcss">
+        @layer utilities {
+            .content-auto {
+                content-visibility: auto;
+            }
+            .text-shadow {
+                text-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            }
+            .transition-transform-opacity {
+                transition-property: transform, opacity;
+            }
+            .pomodoro-shadow {
+                box-shadow: 0 10px 25px -5px rgba(59, 130, 246, 0.1), 0 8px 10px -6px rgba(59, 130, 246, 0.1);
+            }
+        }
+    </style>
+
+    <style>
+        /* 基础动画定义 */
+        @keyframes pulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+        }
+
+        .pulse-animation {
+            animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+        }
+
+        /* 进度环动画 */
+        @keyframes progress {
+            from { stroke-dashoffset: 283; }
+            to { stroke-dashoffset: 0; }
+        }
+
+        .progress-animation {
+            animation: progress var(--duration) linear forwards;
+        }
+    </style>
+</head>
+
+<body class="font-inter bg-gradient-to-br from-light to-blue-50 min-h-screen text-dark flex flex-col">
+<div id="app" class="container mx-auto px-4 py-8 max-w-3xl flex-grow flex flex-col">
+    <!-- 头部 -->
+    <header class="text-center mb-8">
+        <h1 class="text-[clamp(2rem,5vw,3rem)] font-bold text-primary text-shadow mb-2 transition-all duration-300 hover:text-primary/80">
+            专注番茄钟
+        </h1>
+        <p class="text-gray-600 text-lg">提升效率，掌控时间的艺术</p>
+    </header>
+
+    <!-- 主要内容区 -->
+    <main class="flex-grow flex flex-col items-center justify-center">
+        <!-- 模式切换 -->
+        <div class="flex rounded-full bg-gray-100 p-1 mb-10 shadow-sm w-full max-w-md">
+            <button
+                    :class="mode === 'work' ? 'bg-primary text-white' : 'text-gray-600 hover:text-gray-800'"
+                    @click="setMode('work')"
+                    class="flex-1 py-3 px-4 rounded-full transition-all duration-300 font-medium"
+            >
+                <i class="fa fa-briefcase mr-2"></i>工作
+            </button>
+            <button
+                    :class="mode === 'shortBreak' ? 'bg-secondary text-white' : 'text-gray-600 hover:text-gray-800'"
+                    @click="setMode('shortBreak')"
+                    class="flex-1 py-3 px-4 rounded-full transition-all duration-300 font-medium"
+            >
+                <i class="fa fa-coffee mr-2"></i>短休息
+            </button>
+            <button
+                    :class="mode === 'longBreak' ? 'bg-accent text-white' : 'text-gray-600 hover:text-gray-800'"
+                    @click="setMode('longBreak')"
+                    class="flex-1 py-3 px-4 rounded-full transition-all duration-300 font-medium"
+            >
+                <i class="fa fa-bed mr-2"></i>长休息
+            </button>
+        </div>
+
+        <!-- 番茄钟计时器 -->
+        <div class="relative mb-10">
+            <!-- 进度环 -->
+            <svg class="w-64 h-64 md:w-80 md:h-80 transform -rotate-90" viewBox="0 0 100 100">
+                <!-- 背景圆环 -->
+                <circle cx="50" cy="50" r="45" fill="none" stroke="#E2E8F0" stroke-width="8" />
+                <!-- 进度圆环 -->
+                <circle
+                        cx="50" cy="50" r="45" fill="none"
+                        :stroke="currentColor"
+                        stroke-width="8"
+                        stroke-dasharray="283"
+                        :stroke-dashoffset="progressOffset"
+                        class="transition-all duration-1000 ease-in-out"
+                />
+            </svg>
+
+            <!-- 计时器显示 -->
+            <div class="absolute inset-0 flex flex-col items-center justify-center">
+                <div class="text-[clamp(2.5rem,8vw,4rem)] font-bold mb-2" :class="textColor">
+                    {{ formattedTime }}
+                </div>
+                <div class="text-lg font-medium text-gray-600">
+                    {{ currentLabel }}
+                </div>
+            </div>
+        </div>
+
+        <!-- 控制按钮 -->
+        <div class="flex gap-4 mb-10">
+            <button
+                    @click="toggleTimer"
+                    :class="isRunning ? 'bg-danger hover:bg-danger/90' : 'bg-primary hover:bg-primary/90'"
+                    class="px-8 py-3 rounded-full text-white font-medium shadow-lg hover:shadow-xl transform hover:-translate-y-1 transition-all duration-300 flex items-center"
+            >
+                <i :class="isRunning ? 'fa fa-pause mr-2' : 'fa fa-play mr-2'"></i>
+                {{ isRunning ? '暂停' : '开始' }}
+            </button>
+            <button
+                    @click="resetTimer"
+                    class="px-6 py-3 rounded-full bg-gray-200 hover:bg-gray-300 text-gray-700 font-medium shadow-md hover:shadow-lg transform hover:-translate-y-1 transition-all duration-300"
+            >
+                <i class="fa fa-refresh mr-2"></i>重置
+            </button>
+        </div>
+
+        <!-- 已完成番茄数 -->
+        <div class="mb-10 text-center">
+            <h3 class="text-gray-600 mb-3 font-medium">已完成番茄</h3>
+            <div class="flex justify-center gap-2">
+                <div v-for="n in completedPomodoros" :key="n" class="w-8 h-8 rounded-full bg-primary flex items-center justify-center text-white">
+                    <i class="fa fa-check"></i>
+                </div>
+                <div v-for="n in 4 - completedPomodoros" :key="'empty-' + n" class="w-8 h-8 rounded-full bg-gray-200 border-2 border-dashed border-gray-300"></div>
+            </div>
+            <p class="text-gray-500 text-sm mt-2">每完成4个番茄，获得一次长休息</p>
+        </div>
+
+        <!-- 任务列表 -->
+        <div class="w-full bg-white rounded-xl shadow-lg p-6 mb-8">
+            <h3 class="text-lg font-semibold mb-4 flex items-center">
+                <i class="fa fa-tasks text-primary mr-2"></i>当前任务
+            </h3>
+
+            <div class="flex gap-2 mb-4">
+                <input
+                        v-model="newTask"
+                        @keyup.enter="addTask"
+                        type="text"
+                        placeholder="添加新任务..."
+                        class="flex-grow px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary/50 focus:border-primary outline-none transition-all"
+                >
+                <button
+                        @click="addTask"
+                        class="bg-primary hover:bg-primary/90 text-white px-4 py-2 rounded-lg transition-all"
+                >
+                    <i class="fa fa-plus"></i>
+                </button>
+            </div>
+
+            <ul class="space-y-2 max-h-40 overflow-y-auto pr-2">
+                <li
+                        v-for="(task, index) in tasks"
+                        :key="index"
+                        class="flex items-center justify-between p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-all"
+                >
+                    <div class="flex items-center gap-3">
+                        <button
+                                @click="toggleTaskComplete(index)"
+                                class="w-5 h-5 rounded-full border-2 flex-shrink-0"
+                                :class="task.completed ? 'border-secondary bg-secondary text-white' : 'border-gray-300'"
+                        >
+                            <i v-if="task.completed" class="fa fa-check text-xs"></i>
+                        </button>
+                        <span :class="task.completed ? 'line-through text-gray-500' : ''" class="flex-grow">
+                {{ task.name }}
+              </span>
+                    </div>
+                    <span class="text-sm text-gray-500 mr-2">
+              {{ task.pomodoros }} ×
+            </span>
+                    <button
+                            @click="removeTask(index)"
+                            class="text-gray-400 hover:text-danger transition-colors"
+                    >
+                        <i class="fa fa-trash"></i>
+                    </button>
+                </li>
+                <li v-if="tasks.length === 0" class="text-center text-gray-500 py-4">
+                    没有任务，添加一个开始专注吧！
+                </li>
+            </ul>
+        </div>
+    </main>
+
+    <!-- 设置面板 -->
+    <div class="bg-white rounded-xl shadow-lg p-6 mb-8">
+        <h3 class="text-lg font-semibold mb-4 flex items-center cursor-pointer" @click="showSettings = !showSettings">
+            <i class="fa fa-cog text-primary mr-2"></i>设置
+            <i class="fa ml-auto transition-transform duration-300" :class="showSettings ? 'fa-chevron-up' : 'fa-chevron-down'"></i>
+        </h3>
+
+        <div v-if="showSettings" class="grid grid-cols-1 md:grid-cols-3 gap-4 mt-4">
+            <div>
+                <label class="block text-sm text-gray-600 mb-1">工作时长 (分钟)</label>
+                <input
+                        v-model.number="workMinutes"
+                        type="number"
+                        min="1"
+                        max="60"
+                        class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary/50 focus:border-primary outline-none"
+                >
+            </div>
+            <div>
+                <label class="block text-sm text-gray-600 mb-1">短休息时长 (分钟)</label>
+                <input
+                        v-model.number="shortBreakMinutes"
+                        type="number"
+                        min="1"
+                        max="30"
+                        class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary/50 focus:border-primary outline-none"
+                >
+            </div>
+            <div>
+                <label class="block text-sm text-gray-600 mb-1">长休息时长 (分钟)</label>
+                <input
+                        v-model.number="longBreakMinutes"
+                        type="number"
+                        min="5"
+                        max="60"
+                        class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary/50 focus:border-primary outline-none"
+                >
+            </div>
+        </div>
+    </div>
+
+    <!-- 页脚 -->
+    <footer class="text-center text-gray-500 text-sm py-4">
+        <p>番茄工作法是一种时间管理技术，帮助你提高工作效率</p>
+        <p class="mt-1">© 2023 专注番茄钟 - 让每一分钟都有价值</p>
+    </footer>
+
+    <!-- 完成提示弹窗 -->
+    <div
+            v-if="showCompletionAlert"
+            class="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4"
+            @click="showCompletionAlert = false"
+    >
+        <div
+                class="bg-white rounded-xl p-8 max-w-md w-full text-center shadow-2xl transform transition-all duration-300 pulse-animation"
+                @click.stop
+        >
+            <div class="w-16 h-16 rounded-full bg-secondary/20 flex items-center justify-center mx-auto mb-4">
+                <i class="fa fa-check text-2xl text-secondary"></i>
+            </div>
+            <h3 class="text-xl font-bold mb-2">{{ completionAlertTitle }}</h3>
+            <p class="text-gray-600 mb-6">{{ completionAlertMessage }}</p>
+            <button
+                    @click="handleCompletionAlert"
+                    class="bg-primary hover:bg-primary/90 text-white px-6 py-3 rounded-lg transition-all font-medium"
+            >
+                {{ completionAlertButtonText }}
+            </button>
+        </div>
+    </div>
+</div>
+
+<script>
+    // 创建Vue应用
+    const { createApp } = Vue;
+
+    createApp({
+        data() {
+            return {
+                // 计时器状态
+                mode: 'work', // 工作模式：work, shortBreak, longBreak
+                timeLeft: 25 * 60, // 默认25分钟（秒为单位）
+                isRunning: false,
+                timer: null,
+                showSettings: false,
+
+                // 时长设置（分钟）
+                workMinutes: 25,
+                shortBreakMinutes: 5,
+                longBreakMinutes: 15,
+
+                // 已完成番茄数
+                completedPomodoros: 0,
+
+                // 任务列表
+                tasks: [],
+                newTask: '',
+
+                // 完成提示
+                showCompletionAlert: false,
+                completionAlertTitle: '',
+                completionAlertMessage: '',
+                completionAlertButtonText: ''
+            };
+        },
+
+        computed: {
+            // 格式化剩余时间为 MM:SS 格式
+            formattedTime() {
+                const minutes = Math.floor(this.timeLeft / 60);
+                const seconds = this.timeLeft % 60;
+                return `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+            },
+
+            // 当前模式的标签文本
+            currentLabel() {
+                switch(this.mode) {
+                    case 'work': return '专注工作中...';
+                    case 'shortBreak': return '短暂休息一下';
+                    case 'longBreak': return '好好放松一下';
+                    default: return '';
+                }
+            },
+
+            // 当前进度环的颜色
+            currentColor() {
+                switch(this.mode) {
+                    case 'work': return 'text-primary';
+                    case 'shortBreak': return 'text-secondary';
+                    case 'longBreak': return 'text-accent';
+                    default: return 'text-primary';
+                }
+            },
+
+            // 进度环的偏移量（用于动画）
+            progressOffset() {
+                const totalSeconds = this.getTotalSecondsForMode(this.mode);
+                return (this.timeLeft / totalSeconds) * 283;
+            },
+
+            // 文本颜色（用于时间显示）
+            textColor() {
+                // 最后10秒添加警告颜色
+                if (this.timeLeft <= 10 && this.timeLeft > 0) {
+                    return 'text-danger animate-pulse';
+                }
+                return this.currentColor;
+            }
+        },
+
+        methods: {
+            // 根据模式获取总秒数
+            getTotalSecondsForMode(mode) {
+                switch(mode) {
+                    case 'work': return this.workMinutes * 60;
+                    case 'shortBreak': return this.shortBreakMinutes * 60;
+                    case 'longBreak': return this.longBreakMinutes * 60;
+                    default: return 25 * 60;
+                }
+            },
+
+            // 设置模式并重置计时器
+            setMode(mode) {
+                this.mode = mode;
+                this.resetTimer();
+            },
+
+            // 切换计时器运行状态
+            toggleTimer() {
+                if (this.isRunning) {
+                    clearInterval(this.timer);
+                } else {
+                    this.timer = setInterval(() => {
+                        if (this.timeLeft > 0) {
+                            this.timeLeft--;
+                        } else {
+                            this.completeTimer();
+                        }
+                    }, 1000);
+                }
+                this.isRunning = !this.isRunning;
+            },
+
+            // 重置计时器
+            resetTimer() {
+                clearInterval(this.timer);
+                this.isRunning = false;
+                this.timeLeft = this.getTotalSecondsForMode(this.mode);
+            },
+
+            // 完成一个计时周期
+            completeTimer() {
+                clearInterval(this.timer);
+                this.isRunning = false;
+
+                // 播放提示音
+                this.playNotificationSound();
+
+                // 处理完成后的逻辑
+                if (this.mode === 'work') {
+                    this.completedPomodoros++;
+                    this.showWorkCompletionAlert();
+                } else {
+                    this.showBreakCompletionAlert();
+                }
+            },
+
+            // 显示工作完成提示
+            showWorkCompletionAlert() {
+                this.completionAlertTitle = '专注时段完成！';
+                this.completionAlertMessage = '你已完成一个番茄钟，该休息一下了。';
+                this.completionAlertButtonText = '开始休息';
+                this.showCompletionAlert = true;
+            },
+
+            // 显示休息完成提示
+            showBreakCompletionAlert() {
+                this.completionAlertTitle = '休息结束！';
+                this.completionAlertMessage = '休息时间结束，准备开始新的专注时段吧。';
+                this.completionAlertButtonText = '开始工作';
+                this.showCompletionAlert = true;
+            },
+
+            // 处理完成提示的按钮点击
+            handleCompletionAlert() {
+                this.showCompletionAlert = false;
+
+                if (this.mode === 'work') {
+                    // 工作完成后，根据已完成数量决定休息类型
+                    const shouldTakeLongBreak = this.completedPomodoros % 4 === 0;
+                    this.setMode(shouldTakeLongBreak ? 'longBreak' : 'shortBreak');
+                } else {
+                    // 休息完成后，回到工作模式
+                    this.setMode('work');
+                }
+
+                // 自动开始下一个周期
+                this.toggleTimer();
+            },
+
+            // 播放提示音
+            playNotificationSound() {
+                try {
+                    // 创建简单的提示音
+                    const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+                    const oscillator = audioContext.createOscillator();
+                    const gainNode = audioContext.createGain();
+
+                    oscillator.connect(gainNode);
+                    gainNode.connect(audioContext.destination);
+
+                    oscillator.type = 'sine';
+                    oscillator.frequency.setValueAtTime(1000, audioContext.currentTime); // 频率
+                    gainNode.gain.setValueAtTime(0.1, audioContext.currentTime); // 音量
+
+                    oscillator.start();
+                    oscillator.stop(audioContext.currentTime + 0.5); // 持续0.5秒
+                } catch (e) {
+                    console.log('提示音播放失败:', e);
+                }
+            },
+
+            // 添加任务
+            addTask() {
+                if (this.newTask.trim()) {
+                    this.tasks.push({
+                        name: this.newTask.trim(),
+                        completed: false,
+                        pomodoros: 0
+                    });
+                    this.newTask = '';
+
+                    // 保存任务到本地存储
+                    this.saveTasks();
+                }
+            },
+
+            // 移除任务
+            removeTask(index) {
+                this.tasks.splice(index, 1);
+                this.saveTasks();
+            },
+
+            // 切换任务完成状态
+            toggleTaskComplete(index) {
+                this.tasks[index].completed = !this.tasks[index].completed;
+                this.saveTasks();
+            },
+
+            // 保存任务到本地存储
+            saveTasks() {
+                localStorage.setItem('pomodoroTasks', JSON.stringify(this.tasks));
+            },
+
+            // 从本地存储加载任务
+            loadTasks() {
+                const savedTasks = localStorage.getItem('pomodoroTasks');
+                if (savedTasks) {
+                    this.tasks = JSON.parse(savedTasks);
+                }
+            }
+        },
+
+        watch: {
+            // 当工作/休息时长变化时，更新当前计时器（如果处于对应模式且未运行）
+            workMinutes(newVal) {
+                if (this.mode === 'work' && !this.isRunning) {
+                    this.timeLeft = newVal * 60;
+                }
+            },
+            shortBreakMinutes(newVal) {
+                if (this.mode === 'shortBreak' && !this.isRunning) {
+                    this.timeLeft = newVal * 60;
+                }
+            },
+            longBreakMinutes(newVal) {
+                if (this.mode === 'longBreak' && !this.isRunning) {
+                    this.timeLeft = newVal * 60;
+                }
+            }
+        },
+
+        mounted() {
+            // 加载保存的任务
+            this.loadTasks();
+
+            // 初始化时间
+            this.timeLeft = this.getTotalSecondsForMode(this.mode);
+        },
+
+        beforeUnmount() {
+            // 清除计时器
+            clearInterval(this.timer);
+        }
+    }).mount('#app');
+</script>
+</body>
+</html>
