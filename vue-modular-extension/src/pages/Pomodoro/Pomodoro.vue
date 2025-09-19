@@ -5,10 +5,10 @@
       <div class="header-content">
         <h1 class="page-title">
           <span class="title-icon">🍅</span>
-          番茄钟
+          专注番茄钟
         </h1>
         <p class="page-description">
-          专注工作，高效管理时间
+          提升效率，掌控时间的艺术
         </p>
       </div>
       
@@ -124,36 +124,74 @@
 
     <!-- 主要内容区域 -->
     <div class="main-content">
-      <!-- 番茄钟显示 -->
+      <!-- 模式切换 -->
+      <div class="mode-switcher">
+        <button
+          :class="currentMode === 'work' ? 'active work-mode' : ''"
+          @click="setMode('work')"
+          class="mode-btn"
+        >
+          💼 工作
+        </button>
+        <button
+          :class="currentMode === 'shortBreak' ? 'active short-break-mode' : ''"
+          @click="setMode('shortBreak')"
+          class="mode-btn"
+        >
+          ☕ 短休息
+        </button>
+        <button
+          :class="currentMode === 'longBreak' ? 'active long-break-mode' : ''"
+          @click="setMode('longBreak')"
+          class="mode-btn"
+        >
+          🛏️ 长休息
+        </button>
+      </div>
+
+      <!-- 番茄钟计时器 -->
       <div class="timer-container">
         <div class="timer-circle" :class="{ 
           'work-mode': currentMode === 'work',
-          'break-mode': currentMode === 'shortBreak' || currentMode === 'longBreak',
-          'running': isRunning 
+          'short-break-mode': currentMode === 'shortBreak',
+          'long-break-mode': currentMode === 'longBreak',
+          'running': isRunning,
+          'warning': timeLeft <= 10 && timeLeft > 0
         }">
-          <svg class="progress-ring" width="300" height="300">
-            <circle
+          <!-- 进度环 SVG -->
+          <svg class="progress-ring" viewBox="0 0 100 100">
+            <!-- 背景圆环 -->
+            <circle 
+              cx="50" 
+              cy="50" 
+              r="45" 
+              fill="none" 
+              stroke="#E2E8F0" 
+              stroke-width="6"
               class="progress-ring-background"
-              cx="150"
-              cy="150"
-              r="140"
             />
+            <!-- 进度圆环 -->
             <circle
-              class="progress-ring-progress"
-              cx="150"
-              cy="150"
-              r="140"
-              :stroke-dasharray="circumference"
+              cx="50" 
+              cy="50" 
+              r="45" 
+              fill="none"
+              :stroke="currentColor"
+              stroke-width="6"
+              stroke-dasharray="283"
               :stroke-dashoffset="progressOffset"
+              class="progress-ring-progress"
+              stroke-linecap="round"
             />
           </svg>
           
+          <!-- 计时器显示 -->
           <div class="timer-content">
-            <div class="timer-display">
+            <div class="timer-display" :class="textColorClass">
               {{ formatTime(timeLeft) }}
             </div>
             <div class="timer-mode">
-              {{ getModeText() }}
+              {{ currentLabel }}
             </div>
             <div class="timer-cycle">
               第 {{ currentCycle }} 个番茄钟
@@ -164,58 +202,64 @@
         <!-- 控制按钮 -->
         <div class="timer-controls">
           <button 
-            class="btn btn-primary timer-btn"
+            class="control-btn primary"
             @click="toggleTimer"
+            :class="{ 'danger': isRunning }"
           >
-            {{ isRunning ? '⏸️ 暂停' : '▶️ 开始' }}
+            <span class="btn-icon">{{ isRunning ? '⏸️' : '▶️' }}</span>
+            {{ isRunning ? '暂停' : '开始' }}
           </button>
           
           <button 
-            class="btn btn-secondary timer-btn"
+            class="control-btn secondary"
             @click="resetTimer"
-            :disabled="!isRunning && timeLeft === getCurrentModeDuration() * 60"
           >
-            🔄 重置
+            <span class="btn-icon">🔄</span>
+            重置
           </button>
-          
-          <button 
-            class="btn btn-ghost timer-btn"
-            @click="skipCycle"
-            :disabled="!isRunning"
-          >
-            ⏭️ 跳过
-          </button>
+        </div>
+
+        <!-- 已完成番茄数显示 -->
+        <div class="completed-pomodoros">
+          <h3 class="section-title">已完成番茄</h3>
+          <div class="pomodoro-dots">
+            <div 
+              v-for="n in 4" 
+              :key="n"
+              class="pomodoro-dot"
+              :class="{ 'completed': n <= completedPomodoros }"
+            >
+              <span v-if="n <= completedPomodoros">✓</span>
+            </div>
+          </div>
+          <p class="completion-hint">每完成4个番茄，获得一次长休息</p>
         </div>
       </div>
 
       <!-- 任务列表 -->
       <div class="task-section">
         <div class="task-header">
-          <h3>今日任务</h3>
-          <button 
-            class="btn btn-primary btn-sm"
-            @click="showTaskInput = !showTaskInput"
-          >
-            ➕ 添加任务
-          </button>
+          <h3 class="section-title">
+            📋 当前任务
+          </h3>
         </div>
 
         <!-- 添加任务输入 -->
-        <div v-if="showTaskInput" class="task-input-section">
+        <div class="task-input-section">
           <div class="input-group">
             <input
               v-model="newTaskText"
               type="text"
-              class="input"
-              placeholder="输入任务描述..."
+              class="task-input"
+              placeholder="添加新任务..."
               @keyup.enter="addTask"
             />
             <button 
-              class="btn btn-primary"
+              class="add-task-btn"
               @click="addTask"
               :disabled="!newTaskText.trim()"
             >
-              添加
+              ➕
             </button>
           </div>
         </div>
@@ -235,35 +279,34 @@
               <button 
                 class="task-checkbox"
                 @click="toggleTask(task.id)"
+                :class="{ 'completed': task.completed }"
               >
-                {{ task.completed ? '✅' : '⭕' }}
+                <span v-if="task.completed" class="checkmark">✓</span>
               </button>
               
-              <span class="task-text">{{ task.text }}</span>
+              <span class="task-text" :class="{ 'completed': task.completed }">
+                {{ task.text }}
+              </span>
               
               <div class="task-pomodoros">
-                <span 
-                  v-for="i in task.estimatedPomodoros" 
-                  :key="i"
-                  class="pomodoro-dot"
-                  :class="{ filled: i <= task.completedPomodoros }"
-                >
-                  🍅
-                </span>
+                <span class="pomodoro-count">{{ task.completedPomodoros }} ×</span>
               </div>
             </div>
             
             <div class="task-actions">
               <button 
-                class="btn btn-ghost btn-sm"
+                class="action-btn set-active"
                 @click="setActiveTask(task.id)"
                 :disabled="task.completed"
+                :class="{ 'active': task.id === activeTaskId }"
+                title="设为当前任务"
               >
                 {{ task.id === activeTaskId ? '🎯' : '📌' }}
               </button>
               <button 
-                class="btn btn-ghost btn-sm"
+                class="action-btn remove"
                 @click="removeTask(task.id)"
+                title="删除任务"
               >
                 🗑️
               </button>
@@ -272,9 +315,33 @@
           
           <div v-if="tasks.length === 0" class="empty-tasks">
             <div class="empty-icon">📝</div>
-            <p>还没有任务，添加一个开始专注吧！</p>
+            <p>没有任务，添加一个开始专注吧！</p>
           </div>
         </div>
+      </div>
+    </div>
+
+    <!-- 完成提示弹窗 -->
+    <div
+      v-if="showCompletionAlert"
+      class="completion-overlay"
+      @click="handleCompletionAlert"
+    >
+      <div
+        class="completion-modal"
+        @click.stop
+      >
+        <div class="completion-icon">
+          <span>✓</span>
+        </div>
+        <h3 class="completion-title">{{ completionAlertTitle }}</h3>
+        <p class="completion-message">{{ completionAlertMessage }}</p>
+        <button
+          @click="handleCompletionAlert"
+          class="completion-btn"
+        >
+          {{ completionAlertButtonText }}
+        </button>
       </div>
     </div>
   </div>
@@ -297,9 +364,17 @@ export default {
     const currentCycle = ref(1)
     const showSettings = ref(false)
     const showStats = ref(false)
-    const showTaskInput = ref(false)
     const newTaskText = ref('')
     const activeTaskId = ref(null)
+    
+    // 完成提示相关
+    const showCompletionAlert = ref(false)
+    const completionAlertTitle = ref('')
+    const completionAlertMessage = ref('')
+    const completionAlertButtonText = ref('')
+    
+    // 已完成番茄数（每4个一个周期）
+    const completedPomodoros = ref(0)
     
     let timerInterval = null
     
@@ -332,14 +407,67 @@ export default {
     })
     
     // 计算属性
-    const circumference = computed(() => 2 * Math.PI * 140)
+    const circumference = computed(() => 283) // 2 * Math.PI * 45 (SVG圆的周长)
     
     const progressOffset = computed(() => {
-      const progress = (getCurrentModeDuration() * 60 - timeLeft.value) / (getCurrentModeDuration() * 60)
-      return circumference.value - (progress * circumference.value)
+      const totalSeconds = getTotalSecondsForMode(currentMode.value)
+      return (timeLeft.value / totalSeconds) * circumference.value
     })
     
-    // 获取当前模式的持续时间
+    // 当前模式的标签文本
+    const currentLabel = computed(() => {
+      switch(currentMode.value) {
+        case 'work': return '专注工作中...'
+        case 'shortBreak': return '短暂休息一下'
+        case 'longBreak': return '好好放松一下'
+        default: return ''
+      }
+    })
+    
+    // 当前进度环的颜色
+    const currentColor = computed(() => {
+      switch(currentMode.value) {
+        case 'work': return '#3B82F6' // 蓝色
+        case 'shortBreak': return '#10B981' // 绿色
+        case 'longBreak': return '#F59E0B' // 橙色
+        default: return '#3B82F6'
+      }
+    })
+    
+    // 文本颜色类（用于时间显示）
+    const textColorClass = computed(() => {
+      // 最后10秒添加警告颜色
+      if (timeLeft.value <= 10 && timeLeft.value > 0) {
+        return 'text-danger warning-pulse'
+      }
+      switch(currentMode.value) {
+        case 'work': return 'text-primary'
+        case 'shortBreak': return 'text-success'
+        case 'longBreak': return 'text-warning'
+        default: return 'text-primary'
+      }
+    })
+    
+    // 根据模式获取总秒数
+    const getTotalSecondsForMode = (mode) => {
+      switch(mode) {
+        case 'work': return settings.workDuration * 60
+        case 'shortBreak': return settings.shortBreak * 60
+        case 'longBreak': return settings.longBreak * 60
+        default: return 25 * 60
+      }
+    }
+    
+    // 设置模式并重置计时器
+    const setMode = (mode) => {
+      if (isRunning.value) {
+        pauseTimer()
+      }
+      currentMode.value = mode
+      resetTimer()
+    }
+    
+    // 获取当前模式的持续时间（分钟）
     const getCurrentModeDuration = () => {
       switch (currentMode.value) {
         case 'work':
@@ -351,16 +479,6 @@ export default {
         default:
           return settings.workDuration
       }
-    }
-    
-    // 获取模式文本
-    const getModeText = () => {
-      const texts = {
-        work: '专注工作',
-        shortBreak: '短休息',
-        longBreak: '长休息'
-      }
-      return texts[currentMode.value] || '专注工作'
     }
     
     // 格式化时间显示
@@ -420,21 +538,47 @@ export default {
         playNotificationSound()
       }
       
-      // 显示通知
-      if (settings.notifications) {
-        showCycleCompleteNotification()
-      }
-      
-      // 更新统计
+      // 处理完成后的逻辑
       if (currentMode.value === 'work') {
+        completedPomodoros.value++
         updateWorkStats()
         updateActiveTaskProgress()
+        showWorkCompletionAlert()
+      } else {
+        showBreakCompletionAlert()
+      }
+    }
+    
+    // 显示工作完成提示
+    const showWorkCompletionAlert = () => {
+      completionAlertTitle.value = '专注时段完成！'
+      completionAlertMessage.value = '你已完成一个番茄钟，该休息一下了。'
+      completionAlertButtonText.value = '开始休息'
+      showCompletionAlert.value = true
+    }
+    
+    // 显示休息完成提示
+    const showBreakCompletionAlert = () => {
+      completionAlertTitle.value = '休息结束！'
+      completionAlertMessage.value = '休息时间结束，准备开始新的专注时段吧。'
+      completionAlertButtonText.value = '开始工作'
+      showCompletionAlert.value = true
+    }
+    
+    // 处理完成提示的按钮点击
+    const handleCompletionAlert = () => {
+      showCompletionAlert.value = false
+      
+      if (currentMode.value === 'work') {
+        // 工作完成后，根据已完成数量决定休息类型
+        const shouldTakeLongBreak = completedPomodoros.value % 4 === 0
+        setMode(shouldTakeLongBreak ? 'longBreak' : 'shortBreak')
+      } else {
+        // 休息完成后，回到工作模式
+        setMode('work')
       }
       
-      // 切换到下一个模式
-      switchToNextMode()
-      
-      // 自动开始下一个周期
+      // 自动开始下一个周期（如果设置了自动开始）
       if (settings.autoStart) {
         setTimeout(() => {
           startTimer()
@@ -442,45 +586,27 @@ export default {
       }
     }
     
-    // 切换到下一个模式
-    const switchToNextMode = () => {
-      if (currentMode.value === 'work') {
-        // 工作完成，进入休息
-        if (currentCycle.value % settings.longBreakInterval === 0) {
-          currentMode.value = 'longBreak'
-        } else {
-          currentMode.value = 'shortBreak'
-        }
-      } else {
-        // 休息完成，进入工作
-        currentMode.value = 'work'
-        currentCycle.value++
-      }
-      
-      timeLeft.value = getCurrentModeDuration() * 60
-    }
-    
-    // 播放提示音
+    // 播放提示音（使用Web Audio API创建简单提示音）
     const playNotificationSound = () => {
-      // 这里可以播放音频文件
-      console.log('播放提示音')
+      try {
+        const audioContext = new (window.AudioContext || window.webkitAudioContext)()
+        const oscillator = audioContext.createOscillator()
+        const gainNode = audioContext.createGain()
+        
+        oscillator.connect(gainNode)
+        gainNode.connect(audioContext.destination)
+        
+        oscillator.type = 'sine'
+        oscillator.frequency.setValueAtTime(1000, audioContext.currentTime) // 频率
+        gainNode.gain.setValueAtTime(0.1, audioContext.currentTime) // 音量
+        
+        oscillator.start()
+        oscillator.stop(audioContext.currentTime + 0.5) // 持续0.5秒
+      } catch (e) {
+        console.log('提示音播放失败:', e)
+      }
     }
     
-    // 显示周期完成通知
-    const showCycleCompleteNotification = () => {
-      const messages = {
-        work: '工作时间结束，休息一下吧！',
-        shortBreak: '短休息结束，继续专注工作！',
-        longBreak: '长休息结束，开始新的工作周期！'
-      }
-      
-      appStore.showNotification({
-        type: 'success',
-        title: '番茄钟提醒',
-        message: messages[currentMode.value],
-        duration: 5000
-      })
-    }
     
     // 更新工作统计
     const updateWorkStats = () => {
@@ -652,6 +778,25 @@ export default {
       }
     }, { deep: true })
     
+    // 监听工作/休息时长变化时，更新当前计时器（如果处于对应模式且未运行）
+    watch(() => settings.workDuration, (newVal) => {
+      if (currentMode.value === 'work' && !isRunning.value) {
+        timeLeft.value = newVal * 60
+      }
+    })
+    
+    watch(() => settings.shortBreak, (newVal) => {
+      if (currentMode.value === 'shortBreak' && !isRunning.value) {
+        timeLeft.value = newVal * 60
+      }
+    })
+    
+    watch(() => settings.longBreak, (newVal) => {
+      if (currentMode.value === 'longBreak' && !isRunning.value) {
+        timeLeft.value = newVal * 60
+      }
+    })
+    
     // 组件挂载
     onMounted(async () => {
       await loadSettings()
@@ -675,7 +820,6 @@ export default {
       currentCycle,
       showSettings,
       showStats,
-      showTaskInput,
       newTaskText,
       activeTaskId,
       settings,
@@ -684,21 +828,31 @@ export default {
       weekStats,
       totalStats,
       
+      // 完成提示相关
+      showCompletionAlert,
+      completionAlertTitle,
+      completionAlertMessage,
+      completionAlertButtonText,
+      completedPomodoros,
+      
       // 计算属性
       circumference,
       progressOffset,
+      currentLabel,
+      currentColor,
+      textColorClass,
       
       // 方法
+      setMode,
       getCurrentModeDuration,
-      getModeText,
       formatTime,
       toggleTimer,
       resetTimer,
-      skipCycle,
       addTask,
       toggleTask,
       setActiveTask,
-      removeTask
+      removeTask,
+      handleCompletionAlert
     }
   }
 }
@@ -708,40 +862,48 @@ export default {
 .pomodoro-page {
   display: flex;
   flex-direction: column;
-  height: calc(100vh - 60px); /* 减去顶部导航栏的高度 */
-  background-color: var(--bg-primary);
+  height: calc(100vh - 60px);
+  background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
+  font-family: 'Inter', system-ui, sans-serif;
 }
 
 .page-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: flex-start;
-  padding: var(--spacing-lg);
-  border-bottom: 1px solid var(--border-color);
-  background-color: var(--bg-card);
+  text-align: center;
+  padding: 2rem 1rem;
+  background: rgba(255, 255, 255, 0.8);
+  backdrop-filter: blur(10px);
+  border-bottom: 1px solid rgba(226, 232, 240, 0.5);
 }
 
-.header-content h1 {
-  display: flex;
-  align-items: center;
-  gap: var(--spacing-sm);
-  margin: 0 0 var(--spacing-xs) 0;
-  font-size: var(--font-2xl);
-  font-weight: var(--font-bold);
+.page-title {
+  font-size: clamp(2rem, 5vw, 3rem);
+  font-weight: 700;
+  color: #3B82F6;
+  text-shadow: 0 2px 4px rgba(0,0,0,0.1);
+  margin: 0 0 0.5rem 0;
+  transition: all 0.3s ease;
+}
+
+.page-title:hover {
+  color: rgba(59, 130, 246, 0.8);
 }
 
 .title-icon {
-  font-size: var(--font-3xl);
+  font-size: 1.2em;
+  margin-right: 0.5rem;
 }
 
 .page-description {
-  color: var(--text-secondary);
+  color: #64748B;
+  font-size: 1.125rem;
   margin: 0;
 }
 
 .header-actions {
   display: flex;
-  gap: var(--spacing-sm);
+  justify-content: center;
+  gap: 1rem;
+  margin-top: 1.5rem;
 }
 
 .settings-panel,
@@ -809,59 +971,111 @@ export default {
   color: var(--text-secondary);
 }
 
-.main-content {
-  flex: 1;
-  display: grid;
-  grid-template-columns: 1fr 400px;
-  gap: var(--spacing-lg);
-  padding: var(--spacing-lg);
-  overflow: hidden;
+/* 模式切换器 */
+.mode-switcher {
+  display: flex;
+  background: rgba(243, 244, 246, 0.8);
+  border-radius: 9999px;
+  padding: 0.25rem;
+  margin: 2rem auto;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+  max-width: 24rem;
+  width: 100%;
 }
 
+.mode-btn {
+  flex: 1;
+  padding: 0.75rem 1rem;
+  border-radius: 9999px;
+  border: none;
+  background: transparent;
+  color: #6B7280;
+  font-weight: 500;
+  font-size: 0.875rem;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+}
+
+.mode-btn:hover {
+  color: #374151;
+}
+
+.mode-btn.active.work-mode {
+  background: #3B82F6;
+  color: white;
+  box-shadow: 0 4px 6px -1px rgba(59, 130, 246, 0.3);
+}
+
+.mode-btn.active.short-break-mode {
+  background: #10B981;
+  color: white;
+  box-shadow: 0 4px 6px -1px rgba(16, 185, 129, 0.3);
+}
+
+.mode-btn.active.long-break-mode {
+  background: #F59E0B;
+  color: white;
+  box-shadow: 0 4px 6px -1px rgba(245, 158, 11, 0.3);
+}
+
+.main-content {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 0 2rem 2rem;
+  overflow-y: auto;
+}
+
+/* 计时器容器 */
 .timer-container {
   display: flex;
   flex-direction: column;
   align-items: center;
-  justify-content: center;
-  gap: var(--spacing-xl);
+  gap: 2.5rem;
+  margin-bottom: 2rem;
 }
 
 .timer-circle {
   position: relative;
-  width: 300px;
-  height: 300px;
+  width: clamp(16rem, 20vw, 20rem);
+  height: clamp(16rem, 20vw, 20rem);
+  margin: 2.5rem 0;
 }
 
+.timer-circle.warning {
+  animation: warning-pulse 1s ease-in-out infinite;
+}
+
+/* 进度环样式 */
 .progress-ring {
+  width: 100%;
+  height: 100%;
   transform: rotate(-90deg);
 }
 
 .progress-ring-background {
   fill: none;
-  stroke: var(--border-color);
-  stroke-width: 8;
+  stroke: #E2E8F0;
+  stroke-width: 6;
 }
 
 .progress-ring-progress {
   fill: none;
-  stroke: var(--primary-color);
-  stroke-width: 8;
+  stroke-width: 6;
   stroke-linecap: round;
-  transition: stroke-dashoffset 0.3s ease;
-}
-
-.timer-circle.work-mode .progress-ring-progress {
-  stroke: var(--error-color);
-}
-
-.timer-circle.break-mode .progress-ring-progress {
-  stroke: var(--success-color);
+  transition: all 1s ease-in-out;
 }
 
 .timer-circle.running .progress-ring-progress {
-  animation: pulse 2s ease-in-out infinite alternate;
+  animation: progress-pulse 2s ease-in-out infinite;
 }
 
+/* 计时器内容 */
 .timer-content {
   position: absolute;
   top: 50%;
@@ -871,88 +1085,217 @@ export default {
 }
 
 .timer-display {
-  font-size: 3rem;
-  font-weight: var(--font-bold);
-  color: var(--text-primary);
-  margin-bottom: var(--spacing-sm);
+  font-size: clamp(2.5rem, 8vw, 4rem);
+  font-weight: 700;
+  margin-bottom: 0.5rem;
+}
+
+.timer-display.text-primary { color: #3B82F6; }
+.timer-display.text-success { color: #10B981; }
+.timer-display.text-warning { color: #F59E0B; }
+.timer-display.text-danger { color: #EF4444; }
+
+.timer-display.warning-pulse {
+  animation: warning-pulse 1s ease-in-out infinite;
 }
 
 .timer-mode {
-  font-size: var(--font-lg);
-  font-weight: var(--font-medium);
-  color: var(--text-secondary);
-  margin-bottom: var(--spacing-xs);
+  font-size: 1.125rem;
+  font-weight: 500;
+  color: #64748B;
+  margin-bottom: 0.25rem;
 }
 
 .timer-cycle {
-  font-size: var(--font-sm);
-  color: var(--text-tertiary);
+  font-size: 0.875rem;
+  color: #94A3B8;
 }
 
+/* 控制按钮 */
 .timer-controls {
   display: flex;
-  gap: var(--spacing-md);
+  gap: 1rem;
 }
 
-.timer-btn {
-  min-width: 120px;
-  padding: var(--spacing-md) var(--spacing-lg);
-  font-size: var(--font-md);
-}
-
-.task-section {
+.control-btn {
   display: flex;
-  flex-direction: column;
-  background-color: var(--bg-card);
-  border: 1px solid var(--border-color);
-  border-radius: var(--radius-lg);
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.75rem 2rem;
+  border-radius: 9999px;
+  border: none;
+  font-weight: 600;
+  font-size: 1rem;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+}
+
+.control-btn:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+}
+
+.control-btn.primary {
+  background: #3B82F6;
+  color: white;
+}
+
+.control-btn.primary:hover {
+  background: rgba(59, 130, 246, 0.9);
+}
+
+.control-btn.danger {
+  background: #EF4444;
+  color: white;
+}
+
+.control-btn.danger:hover {
+  background: rgba(239, 68, 68, 0.9);
+}
+
+.control-btn.secondary {
+  background: #E5E7EB;
+  color: #374151;
+}
+
+.control-btn.secondary:hover {
+  background: #D1D5DB;
+}
+
+.btn-icon {
+  font-size: 1.125rem;
+}
+
+/* 已完成番茄数显示 */
+.completed-pomodoros {
+  text-align: center;
+  margin-bottom: 2.5rem;
+}
+
+.section-title {
+  color: #64748B;
+  font-weight: 500;
+  margin-bottom: 0.75rem;
+  font-size: 1rem;
+}
+
+.pomodoro-dots {
+  display: flex;
+  justify-content: center;
+  gap: 0.5rem;
+  margin-bottom: 0.5rem;
+}
+
+.pomodoro-dot {
+  width: 2rem;
+  height: 2rem;
+  border-radius: 50%;
+  background: #E5E7EB;
+  border: 2px dashed #D1D5DB;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  font-weight: 600;
+  transition: all 0.3s ease;
+}
+
+.pomodoro-dot.completed {
+  background: #3B82F6;
+  border: 2px solid #3B82F6;
+  transform: scale(1.1);
+}
+
+.completion-hint {
+  color: #9CA3AF;
+  font-size: 0.875rem;
+  margin: 0;
+}
+
+/* 任务列表 */
+.task-section {
+  width: 100%;
+  max-width: 28rem;
+  background: rgba(255, 255, 255, 0.9);
+  border-radius: 0.75rem;
+  box-shadow: 0 10px 25px -5px rgba(59, 130, 246, 0.1);
   overflow: hidden;
+  backdrop-filter: blur(10px);
 }
 
 .task-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: var(--spacing-lg);
-  border-bottom: 1px solid var(--border-color);
-  background-color: var(--bg-secondary);
-}
-
-.task-header h3 {
-  margin: 0;
-  font-size: var(--font-lg);
-  font-weight: var(--font-semibold);
+  padding: 1.5rem 1.5rem 0;
 }
 
 .task-input-section {
-  padding: var(--spacing-md);
-  border-bottom: 1px solid var(--border-color);
+  padding: 0 1.5rem 1rem;
 }
 
-.task-list {
+.input-group {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.task-input {
   flex: 1;
+  padding: 0.75rem 1rem;
+  border: 1px solid #D1D5DB;
+  border-radius: 0.5rem;
+  font-size: 0.875rem;
+  transition: all 0.3s ease;
+}
+
+.task-input:focus {
+  outline: none;
+  border-color: #3B82F6;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+}
+
+.add-task-btn {
+  padding: 0.75rem 1rem;
+  background: #3B82F6;
+  color: white;
+  border: none;
+  border-radius: 0.5rem;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.add-task-btn:hover {
+  background: rgba(59, 130, 246, 0.9);
+}
+
+.add-task-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* 任务列表项 */
+.task-list {
+  padding: 0 1.5rem 1.5rem;
+  max-height: 10rem;
   overflow-y: auto;
-  padding: var(--spacing-md);
 }
 
 .task-item {
   display: flex;
-  justify-content: space-between;
   align-items: center;
-  padding: var(--spacing-md);
-  border: 1px solid var(--border-color);
-  border-radius: var(--radius-md);
-  margin-bottom: var(--spacing-sm);
-  transition: all var(--transition-fast);
+  justify-content: space-between;
+  padding: 0.75rem;
+  background: #F9FAFB;
+  border-radius: 0.5rem;
+  margin-bottom: 0.5rem;
+  transition: all 0.3s ease;
 }
 
 .task-item:hover {
-  background-color: var(--bg-hover);
+  background: #F3F4F6;
 }
 
 .task-item.active {
-  border-color: var(--primary-color);
-  background-color: rgba(102, 126, 234, 0.05);
+  border: 2px solid #3B82F6;
+  background: rgba(59, 130, 246, 0.05);
 }
 
 .task-item.completed {
@@ -962,75 +1305,212 @@ export default {
 .task-content {
   display: flex;
   align-items: center;
-  gap: var(--spacing-sm);
+  gap: 0.75rem;
   flex: 1;
 }
 
 .task-checkbox {
-  background: none;
-  border: none;
-  font-size: var(--font-lg);
+  width: 1.25rem;
+  height: 1.25rem;
+  border-radius: 50%;
+  border: 2px solid #D1D5DB;
+  background: transparent;
   cursor: pointer;
-  padding: var(--spacing-xs);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.3s ease;
+}
+
+.task-checkbox.completed {
+  background: #10B981;
+  border-color: #10B981;
+}
+
+.checkmark {
+  color: white;
+  font-size: 0.75rem;
+  font-weight: 600;
 }
 
 .task-text {
   flex: 1;
-  font-size: var(--font-sm);
+  font-size: 0.875rem;
+  color: #374151;
 }
 
-.task-item.completed .task-text {
+.task-text.completed {
   text-decoration: line-through;
+  color: #9CA3AF;
 }
 
 .task-pomodoros {
-  display: flex;
-  gap: 2px;
-}
-
-.pomodoro-dot {
-  font-size: var(--font-sm);
-  opacity: 0.3;
-}
-
-.pomodoro-dot.filled {
-  opacity: 1;
+  font-size: 0.75rem;
+  color: #9CA3AF;
+  margin-right: 0.5rem;
 }
 
 .task-actions {
   display: flex;
-  gap: var(--spacing-xs);
+  gap: 0.25rem;
+}
+
+.action-btn {
+  padding: 0.25rem;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  border-radius: 0.25rem;
+  transition: all 0.3s ease;
+}
+
+.action-btn:hover {
+  background: #F3F4F6;
+}
+
+.action-btn.set-active.active {
+  color: #3B82F6;
 }
 
 .empty-tasks {
   text-align: center;
-  padding: var(--spacing-2xl);
-  color: var(--text-tertiary);
+  padding: 2rem;
+  color: #9CA3AF;
 }
 
 .empty-icon {
   font-size: 3rem;
-  margin-bottom: var(--spacing-md);
+  margin-bottom: 1rem;
 }
 
-@keyframes pulse {
-  0% { opacity: 1; }
-  100% { opacity: 0.7; }
+/* 完成提示弹窗 */
+.completion-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 50;
+  padding: 1rem;
+  backdrop-filter: blur(4px);
 }
 
-@media (max-width: 1024px) {
+.completion-modal {
+  background: white;
+  border-radius: 0.75rem;
+  padding: 2rem;
+  max-width: 24rem;
+  width: 100%;
+  text-align: center;
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+  transform: scale(1);
+  animation: modal-appear 0.3s ease-out;
+}
+
+.completion-icon {
+  width: 4rem;
+  height: 4rem;
+  border-radius: 50%;
+  background: rgba(16, 185, 129, 0.2);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto 1rem;
+  color: #10B981;
+  font-size: 1.5rem;
+  font-weight: 600;
+}
+
+.completion-title {
+  font-size: 1.25rem;
+  font-weight: 700;
+  margin-bottom: 0.5rem;
+  color: #111827;
+}
+
+.completion-message {
+  color: #6B7280;
+  margin-bottom: 1.5rem;
+  line-height: 1.5;
+}
+
+.completion-btn {
+  background: #3B82F6;
+  color: white;
+  border: none;
+  padding: 0.75rem 1.5rem;
+  border-radius: 0.5rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.completion-btn:hover {
+  background: rgba(59, 130, 246, 0.9);
+  transform: translateY(-1px);
+}
+
+/* 动画效果 */
+@keyframes warning-pulse {
+  0%, 100% { 
+    opacity: 1;
+    transform: scale(1);
+  }
+  50% { 
+    opacity: 0.8;
+    transform: scale(1.02);
+  }
+}
+
+@keyframes progress-pulse {
+  0%, 100% { 
+    opacity: 1;
+  }
+  50% { 
+    opacity: 0.8;
+  }
+}
+
+@keyframes modal-appear {
+  0% {
+    opacity: 0;
+    transform: scale(0.9) translateY(-10px);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+
+/* 响应式设计 */
+@media (max-width: 768px) {
   .main-content {
-    grid-template-columns: 1fr;
-    grid-template-rows: auto 1fr;
+    padding: 0 1rem 1rem;
   }
   
   .timer-circle {
-    width: 250px;
-    height: 250px;
+    width: 14rem;
+    height: 14rem;
   }
   
   .timer-display {
     font-size: 2.5rem;
   }
+  
+  .mode-switcher {
+    margin: 1rem auto;
+  }
+  
+  .timer-controls {
+    flex-direction: column;
+    gap: 0.75rem;
+  }
+  
+  .control-btn {
+    padding: 0.75rem 1.5rem;
+  }
 }
+
+/* 移除重复的样式，使用上面定义的现代化样式 */
 </style>
