@@ -3,6 +3,7 @@ import { createRouter, createWebHashHistory } from 'vue-router'
 // 页面组件懒加载
 const Reading = () => import('@pages/Reading/Reading.vue')
 const Pomodoro = () => import('@pages/Pomodoro/Pomodoro.vue')
+const ChatAssistant = () => import('@pages/ChatAssistant/ChatAssistant.vue')
 const Settings = () => import('@pages/Settings/Settings.vue')
 
 // 预留的未来功能页面
@@ -33,6 +34,16 @@ const routes = [
       title: '番茄钟',
       icon: '🍅',
       description: '专注时间管理'
+    }
+  },
+  {
+    path: '/chat-assistant',
+    name: 'ChatAssistant',
+    component: ChatAssistant,
+    meta: {
+      title: '聊天助手',
+      icon: '🤖',
+      description: '智能AI对话助手'
     }
   },
   {
@@ -110,7 +121,7 @@ router.beforeEach((to, from, next) => {
   
   // 设置页面标题
   if (to.meta?.title) {
-    document.title = `${to.meta.title} - Vue 工具箱`
+    document.title = `${to.meta.title} - 中国建筑开发工具箱`
   }
   
   next()

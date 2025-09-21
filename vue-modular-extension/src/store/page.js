@@ -31,6 +31,13 @@ export const usePageStore = defineStore('page', () => {
       sessionType: 'work', // work, break, longBreak
       lastStartTime: null
     },
+    'chat-assistant': {
+      // 聊天助手页面状态
+      isLoaded: false,
+      showWelcome: true,
+      lastInteraction: null,
+      conversationId: null
+    },
     settings: {
       // 设置页面状态
       activeTab: 'general',
@@ -61,6 +68,7 @@ export const usePageStore = defineStore('page', () => {
   const pageInitialized = reactive({
     reading: false,
     pomodoro: false,
+    'chat-assistant': false,
     settings: false,
     fitness: false,
     accounting: false,
@@ -140,6 +148,12 @@ export const usePageStore = defineStore('page', () => {
           timeRemaining: 25 * 60,
           sessionType: 'work',
           lastStartTime: null
+        },
+        'chat-assistant': {
+          isLoaded: false,
+          showWelcome: true,
+          lastInteraction: null,
+          conversationId: null
         },
         settings: {
           activeTab: 'general',

@@ -21,6 +21,15 @@
           <Pomodoro />
         </div>
         
+        <!-- 聊天助手页面 -->
+        <div 
+          v-show="currentPage === 'chat-assistant'"
+          class="page-content"
+          data-page="chat-assistant"
+        >
+          <ChatAssistant />
+        </div>
+        
         <!-- 设置页面 -->
         <div 
           v-show="currentPage === 'settings'"
@@ -78,6 +87,7 @@ import { usePageStore } from '@store/page'
 // 页面组件导入
 import Reading from '@pages/Reading/Reading.vue'
 import Pomodoro from '@pages/Pomodoro/Pomodoro.vue'
+import ChatAssistant from '@pages/ChatAssistant/ChatAssistant.vue'
 import Settings from '@pages/Settings/Settings.vue'
 import Fitness from '@pages/Fitness/Fitness.vue'
 import Accounting from '@pages/Accounting/Accounting.vue'
@@ -89,6 +99,7 @@ export default {
   components: {
     Reading,
     Pomodoro,
+    ChatAssistant,
     Settings,
     Fitness,
     Accounting,
@@ -108,6 +119,7 @@ export default {
       const pathMap = {
         '/reading': 'reading',
         '/pomodoro': 'pomodoro',
+        '/chat-assistant': 'chat-assistant',
         '/settings': 'settings',
         '/fitness': 'fitness',
         '/accounting': 'accounting',

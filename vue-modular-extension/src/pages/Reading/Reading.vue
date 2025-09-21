@@ -11,16 +11,16 @@
           支持在线网页、本地文件和文档阅读
         </p>
       </div>
-      
+
       <div class="header-actions">
-        <button 
+        <button
           class="btn btn-secondary"
           @click="toggleUrlInput"
           :class="{ active: showUrlInput }"
         >
           {{ showUrlInput ? '隐藏输入' : '输入网址' }}
         </button>
-        <button 
+        <button
           class="btn btn-primary"
           @click="selectFile"
         >
@@ -28,7 +28,7 @@
         </button>
       </div>
     </div>
-    
+
     <!-- URL 输入区域 -->
     <div v-if="showUrlInput" class="url-input-section">
       <div class="input-group">
@@ -39,7 +39,7 @@
           placeholder="输入网址或文件路径 (支持 http://, https://, file://)"
           @keyup.enter="loadUrl"
         />
-        <button 
+        <button
           class="btn btn-primary"
           @click="loadUrl"
           :disabled="!inputUrl.trim()"
@@ -47,7 +47,7 @@
           加载
         </button>
       </div>
-      
+
       <!-- 快速链接 -->
       <div class="quick-links">
         <span class="quick-links-label">快速链接:</span>
@@ -62,7 +62,7 @@
         </button>
       </div>
     </div>
-    
+
     <!-- 当前文档信息 -->
     <div v-if="currentDocument" class="document-info">
       <div class="document-header">
@@ -71,21 +71,21 @@
           <span class="document-name">{{ currentDocument.name }}</span>
         </div>
         <div class="document-actions">
-          <button 
+          <button
             class="btn btn-ghost"
             @click="refreshDocument"
             title="刷新文档"
           >
             🔄
           </button>
-          <button 
+          <button
             class="btn btn-ghost"
             @click="openInNewTab"
             title="在新标签页打开"
           >
             🔗
           </button>
-          <button 
+          <button
             class="btn btn-ghost"
             @click="closeDocument"
             title="关闭文档"
@@ -95,14 +95,14 @@
         </div>
       </div>
     </div>
-    
+
     <!-- 文档查看器 -->
     <div class="document-viewer" :class="{ 'has-document': currentDocument }">
       <div v-if="isLoading" class="loading-state">
         <div class="loading-spinner"></div>
         <p>正在加载文档...</p>
       </div>
-      
+
       <div v-else-if="error" class="error-state">
         <div class="error-icon">❌</div>
         <h3>加载失败</h3>
@@ -111,7 +111,7 @@
           重试
         </button>
       </div>
-      
+
       <div v-else-if="currentDocument" class="document-content">
         <!-- 网页内容 -->
         <iframe
@@ -121,14 +121,14 @@
           @load="onDocumentLoad"
           @error="onDocumentError"
         ></iframe>
-        
+
         <!-- 文本内容 -->
         <div
           v-else-if="currentDocument.type === 'text'"
           class="text-content"
           v-html="currentDocument.content"
         ></div>
-        
+
         <!-- PDF 查看器 -->
         <div v-else-if="currentDocument.type === 'pdf'" class="pdf-viewer">
           <embed
@@ -138,14 +138,14 @@
           />
         </div>
       </div>
-      
+
       <!-- 欢迎界面 -->
       <div v-else class="welcome-state">
         <div class="welcome-content">
           <div class="welcome-icon">📚</div>
           <h2>欢迎使用阅读中心</h2>
           <p>选择一个文档开始阅读</p>
-          
+
           <div class="welcome-features">
             <div class="feature-item">
               <span class="feature-icon">🌐</span>
@@ -163,7 +163,7 @@
         </div>
       </div>
     </div>
-    
+
     <!-- 文件选择器 -->
     <input
       ref="fileInput"
@@ -181,43 +181,43 @@ import { useAppStore } from '@store/app'
 
 export default {
   name: 'Reading',
-  
+
   setup() {
     const appStore = useAppStore()
-    
+
     // 响应式数据
     const showUrlInput = ref(false)
     const inputUrl = ref('')
     const isLoading = ref(false)
     const error = ref('')
     const fileInput = ref(null)
-    
+
     const currentDocument = ref(null)
-    
+
     // 快速链接
     const quickLinks = ref([
       {
-        name: '微信读书',
-        url: 'https://weread.qq.com/',
-        description: '微信读书网页版'
+        name: '中海通文档',
+        url: 'https://cohlzhtweb.feishu.cn/drive/home/',
+        description: '中海通文档'
       },
       {
-        name: 'GitHub',
-        url: 'https://github.com',
-        description: 'GitHub 代码托管平台'
+        name: '耀耀工厂',
+        url: 'https://hiagent.3311csci.com/',
+        description: '耀耀工厂'
+      },
+      {
+        name: 'ITPM',
+        url: 'https://webapp.csci.com.hk/itpm',
+        description: 'ITPM'
       },
       {
         name: '掘金',
         url: 'https://juejin.cn',
         description: '掘金技术社区'
-      },
-      {
-        name: 'MDN',
-        url: 'https://developer.mozilla.org',
-        description: 'MDN Web 文档'
       }
     ])
-    
+
     // 切换 URL 输入显示
     const toggleUrlInput = () => {
       showUrlInput.value = !showUrlInput.value
@@ -226,7 +226,7 @@ export default {
         getCurrentTabUrl()
       }
     }
-    
+
     // 获取当前标签页 URL
     const getCurrentTabUrl = async () => {
       try {
@@ -238,33 +238,33 @@ export default {
         console.error('获取当前标签页 URL 失败:', error)
       }
     }
-    
+
     // 加载 URL
     const loadUrl = async () => {
       if (!inputUrl.value.trim()) return
-      
+
       isLoading.value = true
       error.value = ''
-      
+
       try {
         const url = processUrl(inputUrl.value.trim())
-        
+
         currentDocument.value = {
           name: getDocumentName(url),
           url: url,
           type: getDocumentTypeFromUrl(url),
           loadTime: new Date()
         }
-        
+
         // 保存到历史记录
         saveToHistory(currentDocument.value)
-        
+
         appStore.showNotification({
           type: 'success',
           title: '文档加载成功',
           message: `已加载: ${currentDocument.value.name}`
         })
-        
+
       } catch (err) {
         error.value = err.message
         appStore.showNotification({
@@ -276,22 +276,22 @@ export default {
         isLoading.value = false
       }
     }
-    
+
     // 处理 URL
     const processUrl = (url) => {
       // 如果是本地文件路径，转换为 file:// 协议
       if (url.match(/^[A-Za-z]:\\/)) {
         return `file:///${url.replace(/\\/g, '/')}`
       }
-      
+
       // 如果没有协议，默认添加 https://
       if (!url.match(/^https?:\/\//) && !url.match(/^file:\/\//)) {
         return `https://${url}`
       }
-      
+
       return url
     }
-    
+
     // 获取文档名称
     const getDocumentName = (url) => {
       try {
@@ -304,49 +304,49 @@ export default {
         return url
       }
     }
-    
+
     // 根据 URL 判断文档类型
     const getDocumentTypeFromUrl = (url) => {
       if (url.includes('.pdf')) return 'pdf'
       if (url.includes('.txt') || url.includes('.md')) return 'text'
       return 'webpage'
     }
-    
+
     // 获取文档类型显示名称
     const getDocumentType = () => {
       if (!currentDocument.value) return ''
-      
+
       const types = {
         webpage: '网页',
         pdf: 'PDF',
         text: '文本'
       }
-      
+
       return types[currentDocument.value.type] || '文档'
     }
-    
+
     // 加载快速链接
     const loadQuickLink = (link) => {
       inputUrl.value = link.url
       loadUrl()
     }
-    
+
     // 选择文件
     const selectFile = () => {
       fileInput.value?.click()
     }
-    
+
     // 处理文件选择
     const handleFileSelect = (event) => {
       const file = event.target.files[0]
       if (!file) return
-      
+
       isLoading.value = true
       error.value = ''
-      
+
       try {
         const fileUrl = URL.createObjectURL(file)
-        
+
         currentDocument.value = {
           name: file.name,
           url: fileUrl,
@@ -354,7 +354,7 @@ export default {
           size: file.size,
           loadTime: new Date()
         }
-        
+
         // 如果是文本文件，读取内容
         if (currentDocument.value.type === 'text') {
           const reader = new FileReader()
@@ -366,13 +366,13 @@ export default {
         } else {
           isLoading.value = false
         }
-        
+
         appStore.showNotification({
           type: 'success',
           title: '文件加载成功',
           message: `已加载: ${file.name}`
         })
-        
+
       } catch (err) {
         error.value = '文件加载失败'
         isLoading.value = false
@@ -383,18 +383,18 @@ export default {
         })
       }
     }
-    
+
     // 获取文件类型
     const getFileType = (file) => {
       const extension = file.name.split('.').pop().toLowerCase()
-      
+
       if (extension === 'pdf') return 'pdf'
       if (['txt', 'md', 'markdown'].includes(extension)) return 'text'
       if (['html', 'htm'].includes(extension)) return 'webpage'
-      
+
       return 'text'
     }
-    
+
     // 格式化文本内容
     const formatTextContent = (content) => {
       // 简单的 Markdown 渲染
@@ -404,7 +404,7 @@ export default {
         .replace(/\*(.*?)\*/g, '<em>$1</em>')
         .replace(/`(.*?)`/g, '<code>$1</code>')
     }
-    
+
     // 刷新文档
     const refreshDocument = () => {
       if (currentDocument.value) {
@@ -414,7 +414,7 @@ export default {
         }
       }
     }
-    
+
     // 在新标签页打开
     const openInNewTab = async () => {
       if (currentDocument.value) {
@@ -425,42 +425,42 @@ export default {
         }
       }
     }
-    
+
     // 关闭文档
     const closeDocument = () => {
       currentDocument.value = null
       error.value = ''
     }
-    
+
     // 重试加载
     const retryLoad = () => {
       if (inputUrl.value) {
         loadUrl()
       }
     }
-    
+
     // 文档加载完成
     const onDocumentLoad = () => {
       isLoading.value = false
     }
-    
+
     // 文档加载错误
     const onDocumentError = () => {
       error.value = '文档加载失败，请检查网址是否正确'
       isLoading.value = false
     }
-    
+
     // 保存到历史记录
     const saveToHistory = (document) => {
       // 这里可以实现历史记录功能
       console.log('保存到历史记录:', document)
     }
-    
+
     // 组件挂载时的初始化
     onMounted(() => {
       // 可以在这里恢复上次的文档状态
     })
-    
+
     return {
       showUrlInput,
       inputUrl,
@@ -469,7 +469,7 @@ export default {
       currentDocument,
       quickLinks,
       fileInput,
-      
+
       toggleUrlInput,
       loadUrl,
       loadQuickLink,

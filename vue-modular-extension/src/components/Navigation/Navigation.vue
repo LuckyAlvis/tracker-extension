@@ -3,8 +3,8 @@
     <!-- 顶部导航栏 -->
     <div class="nav-header">
       <div class="nav-logo">
-        <span class="logo-icon">🛠️</span>
-        <span class="logo-text">Vue 工具箱</span>
+        <span class="logo-icon">🏗️</span>
+        <span class="logo-text">中建工具箱</span>
       </div>
       
       <!-- 主导航菜单 -->
@@ -116,6 +116,7 @@ export default {
       const pathMap = {
         '/reading': 'reading',
         '/pomodoro': 'pomodoro',
+        '/chat-assistant': 'chat-assistant',
         '/settings': 'settings',
         '/fitness': 'fitness',
         '/accounting': 'accounting',

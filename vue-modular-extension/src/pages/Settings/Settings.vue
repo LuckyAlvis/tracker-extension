@@ -8,7 +8,7 @@
           设置
         </h1>
         <p class="page-description">
-          个性化配置您的工具箱
+          个性化配置您的开发工具箱
         </p>
       </div>
       

@@ -1,51 +1,51 @@
 {
   "manifest_version": 3,
-  "name": "Vue 模块化工具箱",
+  "name": "CSCI插件工具箱",
   "version": "1.0.0",
-  "description": "基于 Vue 的模块化 Chrome 插件，包含阅读、番茄钟等多种实用工具",
-  
+  "description": "由中建香港开发的工具箱，包含阅读中心、番茄钟、聊天助手等实用功能",
+
   "permissions": [
     "storage",
     "activeTab",
     "sidePanel"
   ],
-  
+
   "host_permissions": [
     "http://*/*",
     "https://*/*",
     "file:///*"
   ],
-  
+
   "background": {
     "service_worker": "background.js"
   },
-  
+
   "side_panel": {
     "default_path": "index.html"
   },
-  
+
   "action": {
     "default_popup": "popup.html",
-    "default_title": "Vue 模块化工具箱",
+    "default_title": "中国建筑开发工具箱",
     "default_icon": {
-      "16": "icons/icon-16.png",
-      "32": "icons/icon-32.png",
-      "48": "icons/icon-48.png",
-      "128": "icons/icon-128.png"
+      "16": "icons/头像.png",
+      "32": "icons/头像.png",
+      "48": "icons/头像.png",
+      "128": "icons/头像.png"
     }
   },
-  
+
   "icons": {
-    "16": "icons/icon-16.png",
-    "32": "icons/icon-32.png",
-    "48": "icons/icon-48.png",
-    "128": "icons/icon-128.png"
+    "16": "icons/头像.png",
+    "32": "icons/头像.png",
+    "48": "icons/头像.png",
+    "128": "icons/头像.png"
   },
-  
+
   "content_security_policy": {
     "extension_pages": "script-src 'self'; object-src 'self'"
   },
-  
+
   "web_accessible_resources": [
     {
       "resources": ["*.js", "*.css", "*.html"],
