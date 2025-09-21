@@ -14,14 +14,14 @@
           :key="item.path"
           class="nav-item"
         >
-          <router-link 
-            :to="item.path"
+          <a
+            href="#"
             class="nav-link"
             :class="{ 
-              active: $route.path === item.path,
+              active: isCurrentPage(item.path),
               'coming-soon': item.meta?.comingSoon 
             }"
-            @click="handleNavClick(item)"
+            @click.prevent="handleNavClick(item)"
           >
             <span class="nav-icon">{{ item.meta.icon }}</span>
             <span class="nav-text">{{ item.meta.title }}</span>
@@ -31,7 +31,7 @@
             >
               即将推出
             </span>
-          </router-link>
+          </a>
         </li>
       </ul>
       
@@ -73,6 +73,7 @@
 import { ref, computed, onMounted } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { useAppStore } from '@store/app'
+import { usePageStore } from '@store/page'
 import { getNavigationItems } from '@/router'
 
 export default {
@@ -82,6 +83,7 @@ export default {
     const router = useRouter()
     const route = useRoute()
     const appStore = useAppStore()
+    const pageStore = usePageStore()
     
     const navigationItems = ref([])
     
@@ -109,6 +111,25 @@ export default {
       appStore.toggleTheme()
     }
     
+    // 路径到页面名称的映射
+    const getPageFromPath = (path) => {
+      const pathMap = {
+        '/reading': 'reading',
+        '/pomodoro': 'pomodoro',
+        '/settings': 'settings',
+        '/fitness': 'fitness',
+        '/accounting': 'accounting',
+        '/notes': 'notes'
+      }
+      return pathMap[path] || 'reading'
+    }
+    
+    // 检查是否为当前页面
+    const isCurrentPage = (path) => {
+      const pageName = getPageFromPath(path)
+      return pageStore.currentPage === pageName
+    }
+    
     // 处理导航点击
     const handleNavClick = (item) => {
       if (item.meta?.comingSoon) {
@@ -120,6 +141,13 @@ export default {
         })
         return false
       }
+      
+      // 使用新的页面切换方式
+      const pageName = getPageFromPath(item.path)
+      pageStore.setCurrentPage(pageName)
+      
+      // 同时更新路由（保持URL同步，但不会重新渲染组件）
+      router.push(item.path)
     }
     
     // 在新标签页打开当前页面
@@ -158,6 +186,7 @@ export default {
       themeIcon,
       getNextTheme,
       toggleTheme,
+      isCurrentPage,
       handleNavClick,
       openCurrentPage,
       refreshData

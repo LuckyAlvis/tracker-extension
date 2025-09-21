@@ -70,6 +70,56 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
       });
       return true;
       
+    case 'SAVE_PAGE_STATE':
+      // 保存页面状态
+      const { pageName, state } = message.data;
+      const stateKey = `vue-extension-page-state-${pageName}`;
+      chrome.storage.local.set({
+        [stateKey]: {
+          ...state,
+          lastSaved: new Date().toISOString()
+        }
+      }, () => {
+        sendResponse({ success: true });
+      });
+      return true;
+      
+    case 'GET_PAGE_STATE':
+      // 获取页面状态
+      const pageStateKey = `vue-extension-page-state-${message.data.pageName}`;
+      chrome.storage.local.get([pageStateKey], (result) => {
+        sendResponse({
+          success: true,
+          data: result[pageStateKey] || null
+        });
+      });
+      return true;
+      
+    case 'CLEAR_PAGE_STATE':
+      // 清除页面状态
+      const clearStateKey = `vue-extension-page-state-${message.data.pageName}`;
+      chrome.storage.local.remove([clearStateKey], () => {
+        sendResponse({ success: true });
+      });
+      return true;
+      
+    case 'GET_ALL_PAGE_STATES':
+      // 获取所有页面状态
+      chrome.storage.local.get(null, (result) => {
+        const pageStates = {};
+        Object.keys(result).forEach(key => {
+          if (key.startsWith('vue-extension-page-state-')) {
+            const pageName = key.replace('vue-extension-page-state-', '');
+            pageStates[pageName] = result[key];
+          }
+        });
+        sendResponse({
+          success: true,
+          data: pageStates
+        });
+      });
+      return true;
+      
     default:
       sendResponse({ success: false, error: '未知消息类型' });
   }

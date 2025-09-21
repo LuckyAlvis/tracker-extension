@@ -11,13 +11,9 @@
       <!-- 导航栏 -->
       <Navigation />
       
-      <!-- 路由视图 -->
+      <!-- 页面容器 -->
       <main class="main-content">
-        <router-view v-slot="{ Component, route }">
-          <transition name="page" mode="out-in">
-            <component :is="Component" :key="route.path" />
-          </transition>
-        </router-view>
+        <PageContainer />
       </main>
     </div>
     
@@ -31,13 +27,15 @@ import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import Navigation from '@components/Navigation/Navigation.vue'
 import Notification from '@components/Common/Notification.vue'
+import PageContainer from '@components/Layout/PageContainer.vue'
 import { useAppStore } from '@store/app'
 
 export default {
   name: 'App',
   components: {
     Navigation,
-    Notification
+    Notification,
+    PageContainer
   },
   
   setup() {
